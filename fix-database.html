@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Fix Tool - HATS Consulting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-red-600">🚨 Database Fix Tool</h1>
+        
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm">
+                        <strong>Error detected:</strong> Database columns missing for proof files. This tool will fix it automatically.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid gap-6">
+            <!-- Step 1: Check Current Status -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <span class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">1</span>
+                    Check Database Status
+                </h2>
+                <button onclick="checkDatabase()" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 mr-4">
+                    Check Database Columns
+                </button>
+                <div id="checkResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+
+            <!-- Step 2: Fix Database -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">2</span>
+                    Fix Database (Automatic)
+                </h2>
+                <button onclick="fixDatabase()" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 mr-4">
+                    Add Missing Columns
+                </button>
+                <button onclick="manualFix()" class="bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600">
+                    Manual Fix Instructions
+                </button>
+                <div id="fixResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+
+            <!-- Step 3: Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <span class="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">3</span>
+                    Test Fix
+                </h2>
+                <button onclick="testFix()" class="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 mr-4">
+                    Test Report Submission
+                </button>
+                <div id="testResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+        </div>
+
+        <!-- Manual Instructions -->
+        <div id="manualInstructions" class="mt-8 bg-white p-6 rounded-lg shadow hidden">
+            <h3 class="text-lg font-semibold mb-4">Manual Fix Instructions</h3>
+            <div class="bg-gray-100 p-4 rounded">
+                <p class="mb-4"><strong>Go to Supabase Dashboard:</strong></p>
+                <ol class="list-decimal list-inside space-y-2 mb-4">
+                    <li>Open <a href="https://supabase.com" target="_blank" class="text-blue-600 underline">supabase.com</a></li>
+                    <li>Go to your project</li>
+                    <li>Click "SQL Editor" in left sidebar</li>
+                    <li>Copy and paste this SQL:</li>
+                </ol>
+                <textarea readonly class="w-full h-32 text-sm bg-white p-3 border rounded font-mono">-- Add proof columns to reports table
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_base64 TEXT;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_file_name TEXT;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_file_type TEXT;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_file_size INTEGER;
+
+-- Verify columns were added
+SELECT column_name FROM information_schema.columns WHERE table_name = 'reports' AND column_name LIKE 'proof_%';</textarea>
+                <p class="mt-4 text-sm text-gray-600">5. Click "Run" button</p>
+                <p class="text-sm text-gray-600">6. You should see the 4 new columns listed</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            window.APP_CONFIG.SUPABASE_URL, 
+            window.APP_CONFIG.SUPABASE_ANON_KEY
+        );
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.className = `mt-4 p-4 rounded ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            element.innerHTML = message;
+            element.classList.remove('hidden');
+        }
+
+        async function checkDatabase() {
+            try {
+                console.log('🔍 Checking database columns...');
+                showResult('checkResult', '🔄 Checking database columns...', true);
+                
+                // Try to select the new columns to see if they exist
+                const { data, error } = await supabase
+                    .from('reports')
+                    .select('proof_base64, proof_file_name, proof_file_type, proof_file_size')
+                    .limit(1);
+                
+                if (error) {
+                    if (error.message.includes('proof_')) {
+                        showResult('checkResult', `❌ <strong>Missing Columns Detected</strong><br>
+                            Error: ${error.message}<br><br>
+                            <strong>Solution:</strong> The database needs to be updated with new columns for proof file handling.<br>
+                            Click "Add Missing Columns" below to fix this automatically.`, false);
+                    } else {
+                        showResult('checkResult', `❌ <strong>Database Error</strong><br>
+                            Error: ${error.message}<br><br>
+                            This might be a connection or permission issue.`, false);
+                    }
+                    return false;
+                } else {
+                    showResult('checkResult', `✅ <strong>Database Status: OK</strong><br>
+                        All required columns are present:<br>
+                        • proof_base64 ✓<br>
+                        • proof_file_name ✓<br>
+                        • proof_file_type ✓<br>
+                        • proof_file_size ✓<br><br>
+                        Your database is ready for proof file uploads!`, true);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Database check failed:', error);
+                showResult('checkResult', `❌ <strong>Check Failed</strong><br>
+                    Error: ${error.message}<br><br>
+                    Please check your internet connection and Supabase configuration.`, false);
+                return false;
+            }
+        }
+
+        async function fixDatabase() {
+            try {
+                console.log('🔧 Attempting to fix database...');
+                showResult('fixResult', '🔄 Adding missing columns to database...', true);
+                
+                const fixSQL = `
+                    -- Add proof columns to reports table
+                    ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_base64 TEXT;
+                    ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_file_name TEXT;
+                    ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_file_type TEXT;
+                    ALTER TABLE reports ADD COLUMN IF NOT EXISTS proof_file_size INTEGER;
+                `;
+
+                // Try to execute the fix
+                const { data, error } = await supabase.rpc('exec_sql', { sql: fixSQL });
+                
+                if (error) {
+                    console.error('Automatic fix failed:', error);
+                    showResult('fixResult', `❌ <strong>Automatic Fix Failed</strong><br>
+                        Error: ${error.message}<br><br>
+                        <strong>Please use Manual Fix instead:</strong><br>
+                        1. Click "Manual Fix Instructions" button above<br>
+                        2. Follow the step-by-step instructions<br>
+                        3. Run the SQL in Supabase Dashboard`, false);
+                    
+                    // Show manual instructions
+                    document.getElementById('manualInstructions').classList.remove('hidden');
+                    return false;
+                } else {
+                    showResult('fixResult', `✅ <strong>Database Fixed Successfully!</strong><br>
+                        Added the following columns to reports table:<br>
+                        • proof_base64 (for storing file data)<br>
+                        • proof_file_name (for original filename)<br>
+                        • proof_file_type (for file type like image/jpeg)<br>
+                        • proof_file_size (for file size in bytes)<br><br>
+                        🎉 You can now submit reports with proof files!`, true);
+                    
+                    // Auto-check the database to confirm
+                    setTimeout(() => {
+                        checkDatabase();
+                    }, 2000);
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Fix database failed:', error);
+                showResult('fixResult', `❌ <strong>Fix Failed</strong><br>
+                    Error: ${error.message}<br><br>
+                    Please try the manual fix method instead.`, false);
+                
+                // Show manual instructions
+                document.getElementById('manualInstructions').classList.remove('hidden');
+                return false;
+            }
+        }
+
+        function manualFix() {
+            document.getElementById('manualInstructions').classList.toggle('hidden');
+            
+            if (!document.getElementById('manualInstructions').classList.contains('hidden')) {
+                document.getElementById('manualInstructions').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function testFix() {
+            try {
+                console.log('🧪 Testing database fix...');
+                showResult('testResult', '🔄 Testing report submission...', true);
+                
+                // Get current user
+                const session = await App.getSession();
+                if (!session?.user) {
+                    showResult('testResult', `❌ <strong>No User Session</strong><br>
+                        Please login first to test report submission.<br>
+                        Go to <a href="login.html" class="text-blue-600 underline">login page</a>`, false);
+                    return;
+                }
+                
+                // Create a test report with proof columns
+                const testReport = {
+                    user_id: session.user.id,
+                    report_type: 'trade',
+                    application_name: 'Test Campaign',
+                    customer_name: 'Database Test User',
+                    mobile_number: '9999999999',
+                    notes: 'This is a test report to verify database fix - ' + new Date().toLocaleString(),
+                    status: 'pending',
+                    payment_status: 'Pending',
+                    proof_base64: 'data:text/plain;base64,VGVzdCBmaWxlIGZvciBkYXRhYmFzZSB0ZXN0',
+                    proof_file_name: 'test_file.txt',
+                    proof_file_type: 'text/plain',
+                    proof_file_size: 28,
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await App.createReport(testReport);
+                
+                if (error) {
+                    if (error.message && error.message.includes('proof_')) {
+                        showResult('testResult', `❌ <strong>Test Failed - Columns Still Missing</strong><br>
+                            Error: ${error.message}<br><br>
+                            The database fix didn't work. Please try the manual fix method:<br>
+                            1. Click "Manual Fix Instructions"<br>
+                            2. Follow the SQL instructions<br>
+                            3. Run the test again`, false);
+                    } else {
+                        showResult('testResult', `❌ <strong>Test Failed</strong><br>
+                            Error: ${error.message}<br><br>
+                            There might be another issue with the database.`, false);
+                    }
+                    return false;
+                } else {
+                    showResult('testResult', `✅ <strong>Test Passed!</strong><br>
+                        Successfully created test report with ID: ${data.id}<br><br>
+                        ✅ All database columns are working<br>
+                        ✅ Proof file storage is functional<br>
+                        ✅ Report submission is ready<br><br>
+                        🎉 You can now go back to <a href="submit-report.html" class="text-blue-600 underline">submit-report.html</a> and upload files!`, true);
+                    
+                    // Clean up test report after a few seconds
+                    setTimeout(async () => {
+                        try {
+                            await supabase.from('reports').delete().eq('id', data.id);
+                            console.log('Test report cleaned up');
+                        } catch (cleanup_error) {
+                            console.log('Could not clean up test report:', cleanup_error);
+                        }
+                    }, 5000);
+                    
+                    return true;
+                }
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                showResult('testResult', `❌ <strong>Test Error</strong><br>
+                    Error: ${error.message}<br><br>
+                    Please check your connection and try again.`, false);
+                return false;
+            }
+        }
+
+        // Auto-check database on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔧 Database Fix Tool Loaded');
+            setTimeout(() => {
+                checkDatabase();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

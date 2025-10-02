@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Work Report - HATS Consulting</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+    <script src="auth-fix.js"></script>
+    <script src="assets/js/debug-script.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#8B5CF6',
+                        'accent': '#E11D48',
+                        'accent-hover': '#F43F5E',
+                        'light-bg': '#F8FAFC',
+                        'text-dark': '#0F172A',
+                        'text-medium': '#334155',
+                        'text-light': '#FFFFFF',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom animations and effects */
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+        
+        /* File upload area styling */
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #8B5CF6;
+            background-color: #faf5ff;
+        }
+        
+        /* Form styling improvements */
+        .form-input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.1);
+        }
+        
+        /* Button hover effects */
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+        }
+        
+        /* Loading states */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body class="font-inter bg-light-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <a href="dashboard.html" class="text-white hover:text-white/80 transition-colors">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-upload text-primary text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white font-jakarta">Submit Work Report</h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Report Type Selection -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Account Open Report Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer fade-in" onclick="showAccountOpenForm()">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-user-plus text-green-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text-dark font-jakarta">Account Open Report</h3>
+                        <p class="text-text-medium">Submit account opening reports</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade Report Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer fade-in" onclick="showTradeForm()">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-chart-line text-blue-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text-dark font-jakarta">Trade Report</h3>
+                        <p class="text-text-medium">Submit trading reports</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Open Form -->
+        <div id="account-open-form" class="hidden bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-text-dark font-jakarta mb-6">Account Open Report</h2>
+            <form id="account-open-report-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-text-dark mb-2">Application Name *</label>
+                        <select id="account-app-name" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            <option value="">Select Application</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-text-dark mb-2">Customer Name *</label>
+                        <input type="text" id="account-customer-name" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-text-dark mb-2">Mobile Number *</label>
+                    <input type="tel" id="account-mobile" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text-dark mb-2">Proof *</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                        <input type="file" id="account-payment-proof" accept="image/*,.pdf" class="hidden" onchange="handleFileSelect('account-payment-proof', 'account-payment-preview')">
+                        <div id="account-payment-preview" class="hidden mb-4">
+                            <img id="account-payment-image" class="max-w-full h-32 object-cover rounded-lg mx-auto">
+                            <div class="mt-2">
+                                <button type="button" onclick="document.getElementById('account-payment-proof').click()" class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                                    <i class="fas fa-edit mr-1"></i>Change Photo
+                                </button>
+                            </div>
+                        </div>
+                        <div id="account-upload-area" class="text-center">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                            <p class="text-text-medium">Click to upload payment proof</p>
+                            <p class="text-sm text-gray-500 mt-2">Supports JPG, PNG, PDF (Max 10MB)</p>
+                            <button type="button" onclick="document.getElementById('account-payment-proof').click()" class="btn-primary mt-4 text-white px-6 py-2 rounded-lg">
+                                Choose File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text-dark mb-2">Notes</label>
+                    <textarea id="account-notes" rows="4" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Additional notes..."></textarea>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button type="submit" class="flex-1 bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-600 transition-colors">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Report
+                    </button>
+                    <button type="button" onclick="hideAllForms()" class="px-6 py-3 border border-gray-300 text-text-medium rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Trade Form -->
+        <div id="trade-form" class="hidden bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-text-dark font-jakarta mb-6">Trade Report</h2>
+            <form id="trade-report-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-text-dark mb-2">Application Name *</label>
+                        <select id="trade-app-name" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            <option value="">Select Application</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-text-dark mb-2">Customer Name *</label>
+                        <input type="text" id="trade-customer-name" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-text-dark mb-2">Mobile Number *</label>
+                    <input type="tel" id="trade-mobile" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text-dark mb-2">Trade Proof *</label>
+                    <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input type="file" id="trade-proof" accept="image/*,.pdf" class="hidden" onchange="handleFileSelect('trade-proof', 'trade-proof-preview')">
+                        <div id="trade-proof-preview" class="hidden mb-4">
+                            <img id="trade-proof-image" class="max-w-full h-32 object-cover rounded-lg mx-auto">
+                            <div class="mt-2">
+                                <button type="button" onclick="document.getElementById('trade-proof').click()" class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                                    <i class="fas fa-edit mr-1"></i>Change Photo
+                                </button>
+                            </div>
+                        </div>
+                        <div id="trade-upload-area" class="text-center">
+                            <i class="fas fa-chart-line text-4xl text-gray-400 mb-4"></i>
+                            <p class="text-text-medium">Click to upload trade proof</p>
+                            <p class="text-sm text-gray-500 mt-2">Supports JPG, PNG, PDF (Max 10MB)</p>
+                            <button type="button" onclick="document.getElementById('trade-proof').click()" class="btn-primary mt-4 text-white px-6 py-2 rounded-lg">
+                                Choose File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text-dark mb-2">Notes</label>
+                    <textarea id="trade-notes" rows="4" class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Additional notes..."></textarea>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button type="submit" class="flex-1 bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-600 transition-colors">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Report
+                    </button>
+                    <button type="button" onclick="hideAllForms()" class="px-6 py-3 border border-gray-300 text-text-medium rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // Supabase connection utility with retry logic
+        async function supabaseWithRetry(operation, maxRetries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`🔄 Supabase operation attempt ${attempt}/${maxRetries}`);
+                    const result = await operation();
+                    console.log(`✅ Supabase operation successful on attempt ${attempt}`);
+                    return result;
+                } catch (error) {
+                    console.error(`❌ Supabase operation failed on attempt ${attempt}:`, error);
+                    
+                    // Check if it's a connection error
+                    if (error.message && (
+                        error.message.includes('Failed to fetch') ||
+                        error.message.includes('ERR_CONNECTION_CLOSED') ||
+                        error.message.includes('NetworkError') ||
+                        error.message.includes('fetch') ||
+                        error.message.includes('TypeError: Failed to fetch')
+                    )) {
+                        if (attempt < maxRetries) {
+                            console.log(`⏳ Retrying in ${delay}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2; // Exponential backoff
+                            continue;
+                        } else {
+                            // Show user-friendly error message
+                            alert(`🔌 Database connection issue. Please check your internet connection and try again.\n\nTroubleshooting steps:\n1. Check your internet connection\n2. Refresh the page (Ctrl+F5)\n3. Try again in a few moments\n4. Contact support if the issue persists`);
+                            throw new Error('Database connection failed after multiple attempts');
+                        }
+                    } else {
+                        // Non-connection error, don't retry
+                        throw error;
+                    }
+                }
+            }
+        }
+        
+        let currentUser = null;
+        let campaigns = [];
+
+        // Initialize page
+        async function initPage() {
+            try {
+                currentUser = await AuthHelper.initPage(false);
+                if (!currentUser) return;
+                
+                // Load campaigns for dropdown
+                await loadCampaigns();
+                
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                await AuthHelper.logout();
+            }
+        }
+
+        // Load campaigns
+        async function loadCampaigns() {
+            try {
+                const { data } = await App.fetchCampaigns();
+                campaigns = data || [];
+                
+                // Populate dropdowns
+                const accountSelect = document.getElementById('account-app-name');
+                const tradeSelect = document.getElementById('trade-app-name');
+                
+                campaigns.forEach(campaign => {
+                    const option1 = new Option(campaign.name, campaign.name);
+                    const option2 = new Option(campaign.name, campaign.name);
+                    accountSelect.add(option1);
+                    tradeSelect.add(option2);
+                });
+            } catch (error) {
+                console.error('Error loading campaigns:', error);
+            }
+        }
+
+        // Show account open form
+        function showAccountOpenForm() {
+            hideAllForms();
+            document.getElementById('account-open-form').classList.remove('hidden');
+        }
+
+        // Show trade form
+        function showTradeForm() {
+            hideAllForms();
+            document.getElementById('trade-form').classList.remove('hidden');
+        }
+
+        // Hide all forms
+        function hideAllForms() {
+            document.getElementById('account-open-form').classList.add('hidden');
+            document.getElementById('trade-form').classList.add('hidden');
+        }
+
+        // Handle file selection with proper preview
+        function handleFileSelect(inputId, previewId) {
+            const fileInput = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            const file = fileInput.files[0];
+            
+            // Find upload area to hide/show
+            let uploadArea;
+            if (inputId === 'account-payment-proof') {
+                uploadArea = document.getElementById('account-upload-area');
+            } else if (inputId === 'trade-proof') {
+                uploadArea = document.getElementById('trade-upload-area');
+            }
+            
+            if (file) {
+                console.log('File selected:', file.name, file.type);
+                
+                // Hide upload area and show preview
+                if (uploadArea) uploadArea.classList.add('hidden');
+                preview.classList.remove('hidden');
+                
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Find the correct image element
+                        let imageElement;
+                        if (inputId === 'account-payment-proof') {
+                            imageElement = document.getElementById('account-payment-image');
+                        } else if (inputId === 'trade-proof') {
+                            imageElement = document.getElementById('trade-proof-image');
+                        }
+                        
+                        if (imageElement) {
+                            imageElement.src = e.target.result;
+                            imageElement.style.display = 'block';
+                            console.log('Image preview set successfully');
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // For non-image files (PDF), show file name in preview
+                    const fileName = document.createElement('div');
+                    fileName.className = 'text-sm text-gray-600 p-4 bg-gray-100 rounded text-center';
+                    fileName.innerHTML = `
+                        <i class="fas fa-file-pdf text-2xl text-red-500 mb-2"></i><br>
+                        <span class="font-medium">${file.name}</span><br>
+                        <span class="text-xs text-gray-500">PDF File Selected</span>
+                    `;
+                    
+                    // Clear preview and add file info
+                    const imageElement = preview.querySelector('img');
+                    if (imageElement) imageElement.style.display = 'none';
+                    
+                    // Add or update file info
+                    let fileInfo = preview.querySelector('.file-info');
+                    if (!fileInfo) {
+                        fileInfo = document.createElement('div');
+                        fileInfo.className = 'file-info';
+                        preview.insertBefore(fileInfo, preview.querySelector('.mt-2'));
+                    }
+                    fileInfo.innerHTML = fileName.innerHTML;
+                }
+            } else {
+                // Reset if no file selected
+                preview.classList.add('hidden');
+                if (uploadArea) uploadArea.classList.remove('hidden');
+            }
+        }
+
+        // Handle account open form submission
+        document.getElementById('account-open-report-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('🚀 Starting account open report submission...');
+            
+            // Validate required fields
+            const appName = document.getElementById('account-app-name').value;
+            const customerName = document.getElementById('account-customer-name').value;
+            const mobileNumber = document.getElementById('account-mobile').value;
+            
+            if (!appName || !customerName || !mobileNumber) {
+                alert('❌ Please fill in all required fields (Application Name, Customer Name, Mobile Number)');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.id) {
+                alert('❌ User authentication error. Please refresh the page and login again.');
+                console.error('No current user found:', currentUser);
+                return;
+            }
+            
+            console.log('👤 Current User:', currentUser.email, currentUser.id);
+            
+            const formData = new FormData();
+            formData.append('report_type', 'account_open');
+            formData.append('application_name', appName);
+            formData.append('customer_name', customerName);
+            formData.append('mobile_number', mobileNumber);
+            formData.append('notes', document.getElementById('account-notes').value);
+            
+            let notesText = document.getElementById('account-notes').value;
+            
+            let proofBase64 = null;
+            let proofFileName = null;
+            let proofFileType = null;
+            let proofFileSize = null;
+            
+            const paymentProofFile = document.getElementById('account-payment-proof').files[0];
+            if (paymentProofFile) {
+                console.log('📎 Processing proof file:', paymentProofFile.name, 'Size:', paymentProofFile.size, 'Type:', paymentProofFile.type);
+                
+                // Validate file
+                if (paymentProofFile.size > 10 * 1024 * 1024) { // 10MB limit
+                    alert('❌ File too large! Maximum size is 10MB.');
+                    return;
+                }
+                
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+                if (!allowedTypes.includes(paymentProofFile.type)) {
+                    alert('❌ Invalid file type! Please upload JPG, PNG, GIF, or PDF files only.');
+                    return;
+                }
+                
+                try {
+                    // Convert to base64
+                    console.log('🔄 Converting file to base64...');
+                    proofBase64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(paymentProofFile);
+                    });
+                    
+                    proofFileName = paymentProofFile.name;
+                    proofFileType = paymentProofFile.type;
+                    proofFileSize = paymentProofFile.size;
+                    
+                    console.log('✅ Proof file processed successfully:', {
+                        name: proofFileName,
+                        type: proofFileType,
+                        size: Math.round(proofFileSize / 1024) + ' KB',
+                        base64Length: proofBase64.length
+                    });
+                    
+                    // Add simple note about proof attachment
+                    notesText += (notesText ? '\n\n' : '') + `Payment Proof: ${proofFileName} (${Math.round(proofFileSize / 1024)} KB)`;
+                    
+                } catch (error) {
+                    console.error('❌ Proof file processing error:', error);
+                    alert('❌ Error processing proof file: ' + error.message);
+                    return;
+                }
+            }
+            
+            // Build account open report data first (outside try block for error handling)
+            const reportData = {
+                user_id: currentUser.id,
+                report_type: 'account_open',
+                  application_name: appName,
+                  customer_name: customerName,
+                  mobile_number: mobileNumber,
+                  notes: notesText,
+                  status: 'pending',
+                  payment_status: 'not_paid'
+                // Note: removed created_at as it may cause 400 error if database auto-generates it
+            };
+            
+            try {
+                console.log('📤 Submitting account open report to database...');
+                
+                // First check if we can connect to database
+                console.log('🔍 Testing database connection...');
+                const { data: testConnection } = await App.supabase.auth.getSession();
+                console.log('✅ Database connection OK');
+                
+            // Add proof data if available - store in notes field with structured format
+            if (proofBase64) {
+                console.log('📎 Adding proof data to report...');
+                
+                // Store proof data in notes field with clear delimiters for admin extraction
+                const proofInfo = `Payment Proof: ${proofFileName} (${Math.round(proofFileSize / 1024)} KB, ${proofFileType})`;
+                const proofData = `\n\n--- PROOF_DATA_START ---\n${proofBase64}\n--- PROOF_DATA_END ---`;
+                
+                reportData.notes = reportData.notes ? reportData.notes + '\n\n' + proofInfo + proofData : proofInfo + proofData;
+                
+                console.log('✅ Added proof data to notes field with structured format');
+            }
+                
+                console.log('📋 Report data to be inserted:', reportData);
+                
+                // Validate required fields before submission
+                if (!reportData.user_id) {
+                    throw new Error('User ID is missing');
+                }
+                if (!reportData.application_name) {
+                    throw new Error('Application name is required');
+                }
+                if (!reportData.customer_name) {
+                    throw new Error('Customer name is required');
+                }
+                if (!reportData.mobile_number) {
+                    throw new Error('Mobile number is required');
+                }
+                
+                // Check if reports table exists and is accessible
+                console.log('🔍 Checking reports table...');
+                const { data: tableTest, error: tableError } = await supabaseWithRetry(() =>
+                    App.supabase
+                        .from('reports')
+                        .select('count', { count: 'exact', head: true })
+                );
+                
+                if (tableError) {
+                    console.error('❌ Reports table error:', tableError);
+                    throw new Error('Reports table not accessible: ' + tableError.message);
+                }
+                console.log('✅ Reports table accessible');
+                
+                // Create the report using standard database structure
+                console.log('🚀 Submitting account open report...');
+                console.log('📋 Final report data being sent to database:', JSON.stringify(reportData, null, 2));
+                
+                const result = await supabaseWithRetry(() => App.createReport(reportData));
+                
+                if (result.error) {
+                    throw result.error;
+                }
+                
+                const data = result.data;
+                if (!data) {
+                    throw new Error('No data returned from database insert');
+                }
+                
+                console.log('✅ Account open report successfully saved to database:', data);
+                
+                // Show success message
+                const successMessage = '✅ Account Open Report Submitted Successfully!\n\n📋 Report Details:\n• Type: Account Opening\n• Application: ' + appName + '\n• Customer: ' + customerName + '\n• Status: Pending Admin Approval\n• Report ID: ' + data.id + (proofBase64 ? '\n• Proof: Uploaded Successfully' : '') + '\n\n👨‍💼 Your report has been sent to admin for review and approval.\n\n🔍 You can check the status in "Check Reports" section.';
+                
+                alert(successMessage);
+                
+                console.log('📊 Final report data saved:', data);
+                
+                // Reset form
+                document.getElementById('account-open-report-form').reset();
+                document.getElementById('account-payment-preview').classList.add('hidden');
+                document.getElementById('account-upload-area').classList.remove('hidden');
+                hideAllForms();
+                
+            } catch (error) {
+                console.error('❌ Error submitting account open report:', error);
+                
+                // Enhanced error parsing
+                let errorMessage = 'Unknown error occurred';
+                let detailedError = '';
+                
+                try {
+                    // Try to extract meaningful error message
+                    if (error?.message) {
+                        errorMessage = error.message;
+                        detailedError = error.message;
+                    } else if (typeof error === 'string') {
+                        errorMessage = error;
+                        detailedError = error;
+                    } else if (error?.error?.message) {
+                        errorMessage = error.error.message;
+                        detailedError = error.error.message;
+                    } else if (error?.details) {
+                        errorMessage = error.details;
+                        detailedError = error.details;
+                    } else if (error?.hint) {
+                        errorMessage = error.hint;
+                        detailedError = error.hint;
+                    } else {
+                        // Try to stringify the error object
+                        detailedError = JSON.stringify(error, null, 2);
+                        errorMessage = 'Database error occurred. Check console for details.';
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing error object:', parseError);
+                    detailedError = 'Could not parse error details';
+                }
+                
+                // Handle specific database errors
+                if (detailedError.includes('column') && detailedError.includes('does not exist')) {
+                    errorMessage = 'Database schema error: Missing column. Please contact admin.';
+                } else if (detailedError.includes('violates') || detailedError.includes('constraint')) {
+                    errorMessage = 'Data validation error. Please check all fields.';
+                } else if (detailedError.includes('permission') || detailedError.includes('denied')) {
+                    errorMessage = 'Permission denied. Please login again.';
+                } else if (detailedError.includes('400') || detailedError.includes('Bad Request')) {
+                    errorMessage = 'Invalid data format. Please check all fields and try again.';
+                }
+                
+                console.error('📋 Detailed error information:', {
+                    originalError: error,
+                    errorMessage: errorMessage,
+                    detailedError: detailedError,
+                    errorType: typeof error,
+                    errorKeys: error ? Object.keys(error) : [],
+                    reportData: reportData,
+                    currentUser: currentUser?.email || 'No user'
+                });
+                
+                alert('❌ Error submitting account open report:\n\n' + errorMessage + '\n\nDetailed Error:\n' + detailedError + '\n\nPlease try again or contact support if the problem persists.\n\nTroubleshooting:\n• Check your internet connection\n• Try refreshing the page\n• Make sure all fields are filled correctly\n• Ensure proof file is valid (JPG, PNG, PDF)');
+            }
+        });
+
+        // Handle trade form submission
+        document.getElementById('trade-report-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('🚀 Starting trade report submission...');
+            
+            // Validate required fields
+            const appName = document.getElementById('trade-app-name').value;
+            const customerName = document.getElementById('trade-customer-name').value;
+            const mobileNumber = document.getElementById('trade-mobile').value;
+            
+            if (!appName || !customerName || !mobileNumber) {
+                alert('❌ Please fill in all required fields (Application Name, Customer Name, Mobile Number)');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.id) {
+                alert('❌ User authentication error. Please refresh the page and login again.');
+                console.error('No current user found:', currentUser);
+                return;
+            }
+            
+            console.log('👤 Current User:', currentUser.email, currentUser.id);
+            
+            const formData = new FormData();
+            formData.append('report_type', 'trade');
+            formData.append('application_name', appName);
+            formData.append('customer_name', customerName);
+            formData.append('mobile_number', mobileNumber);
+            formData.append('notes', document.getElementById('trade-notes').value);
+            
+            let notesText = document.getElementById('trade-notes').value;
+            
+            let tradeProofBase64 = null;
+            let tradeProofFileName = null;
+            let tradeProofFileType = null;
+            let tradeProofFileSize = null;
+            
+            const tradeProofFile = document.getElementById('trade-proof').files[0];
+            if (tradeProofFile) {
+                console.log('📎 Processing trade proof file:', tradeProofFile.name, 'Size:', tradeProofFile.size, 'Type:', tradeProofFile.type);
+                
+                // Validate file
+                if (tradeProofFile.size > 10 * 1024 * 1024) { // 10MB limit
+                    alert('❌ File too large! Maximum size is 10MB.');
+                    return;
+                }
+                
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+                if (!allowedTypes.includes(tradeProofFile.type)) {
+                    alert('❌ Invalid file type! Please upload JPG, PNG, GIF, or PDF files only.');
+                    return;
+                }
+                
+                try {
+                    // Convert to base64
+                    console.log('🔄 Converting trade proof to base64...');
+                    tradeProofBase64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(tradeProofFile);
+                    });
+                    
+                    tradeProofFileName = tradeProofFile.name;
+                    tradeProofFileType = tradeProofFile.type;
+                    tradeProofFileSize = tradeProofFile.size;
+                    
+                    console.log('✅ Trade proof file processed successfully:', {
+                        name: tradeProofFileName,
+                        type: tradeProofFileType,
+                        size: Math.round(tradeProofFileSize / 1024) + ' KB',
+                        base64Length: tradeProofBase64.length
+                    });
+                    
+                    // Add simple note about proof attachment
+                    notesText += (notesText ? '\n\n' : '') + `Trade Proof: ${tradeProofFileName} (${Math.round(tradeProofFileSize / 1024)} KB)`;
+                    
+                } catch (error) {
+                    console.error('❌ Trade proof file processing error:', error);
+                    alert('❌ Error processing trade proof file: ' + error.message);
+                    return;
+                }
+            }
+            
+            // Build trade report data first (outside try block for error handling)
+            const reportData = {
+                user_id: currentUser.id,
+                report_type: 'trade',
+                application_name: appName,
+                customer_name: customerName,
+                mobile_number: mobileNumber,
+                  notes: notesText,
+                  status: 'pending',
+                  payment_status: 'not_paid'
+                // Note: removed created_at as it may cause 400 error if database auto-generates it
+            };
+            
+            try {
+                console.log('📤 Submitting trade report to database...');
+                
+                // First check if we can connect to database
+                console.log('🔍 Testing database connection...');
+                const { data: testConnection } = await App.supabase.auth.getSession();
+                console.log('✅ Database connection OK');
+                
+            // Add trade proof data if available - store in notes field with structured format
+            if (tradeProofBase64) {
+                console.log('📎 Adding trade proof data to report...');
+                
+                // Store proof data in notes field with clear delimiters for admin extraction
+                const proofInfo = `Trade Proof: ${tradeProofFileName} (${Math.round(tradeProofFileSize / 1024)} KB, ${tradeProofFileType})`;
+                const proofData = `\n\n--- PROOF_DATA_START ---\n${tradeProofBase64}\n--- PROOF_DATA_END ---`;
+                
+                reportData.notes = reportData.notes ? reportData.notes + '\n\n' + proofInfo + proofData : proofInfo + proofData;
+                
+                console.log('✅ Added trade proof data to notes field with structured format');
+            }
+                
+                console.log('📋 Trade report data to be inserted:', reportData);
+                
+                // Validate required fields before submission
+                if (!reportData.user_id) {
+                    throw new Error('User ID is missing');
+                }
+                if (!reportData.application_name) {
+                    throw new Error('Application name is required');
+                }
+                if (!reportData.customer_name) {
+                    throw new Error('Customer name is required');
+                }
+                if (!reportData.mobile_number) {
+                    throw new Error('Mobile number is required');
+                }
+                
+                // Check if reports table exists and is accessible
+                console.log('🔍 Checking reports table...');
+                const { data: tableTest, error: tableError } = await supabaseWithRetry(() =>
+                    App.supabase
+                        .from('reports')
+                        .select('count', { count: 'exact', head: true })
+                );
+                
+                if (tableError) {
+                    console.error('❌ Reports table error:', tableError);
+                    throw new Error('Reports table not accessible: ' + tableError.message);
+                }
+                console.log('✅ Reports table accessible');
+                
+                // Create the trade report using standard database structure
+                console.log('🚀 Submitting trade report...');
+                console.log('📋 Final report data being sent to database:', JSON.stringify(reportData, null, 2));
+                
+                const result = await supabaseWithRetry(() => App.createReport(reportData));
+                
+                if (result.error) {
+                    throw result.error;
+                }
+                
+                const data = result.data;
+                if (!data) {
+                    throw new Error('No data returned from database insert');
+                }
+                
+                console.log('✅ Trade report successfully saved to database:', data);
+                
+                // Show success message
+                const tradeSuccessMessage = '✅ Trade Report Submitted Successfully!\n\n📋 Report Details:\n• Type: Trading\n• Application: ' + appName + '\n• Customer: ' + customerName + '\n• Status: Pending Admin Approval\n• Report ID: ' + data.id + (tradeProofBase64 ? '\n• Proof: Uploaded Successfully' : '') + '\n\n👨‍💼 Your report has been sent to admin for review and approval.\n\n🔍 You can check the status in "Check Reports" section.';
+                
+                alert(tradeSuccessMessage);
+                
+                console.log('📊 Final trade report data saved:', data);
+                
+                // Reset form
+                document.getElementById('trade-report-form').reset();
+                document.getElementById('trade-proof-preview').classList.add('hidden');
+                document.getElementById('trade-upload-area').classList.remove('hidden');
+                hideAllForms();
+                
+            } catch (error) {
+                console.error('❌ Error submitting trade report:', error);
+                
+                // Enhanced error parsing
+                let errorMessage = 'Unknown error occurred';
+                let detailedError = '';
+                
+                try {
+                    // Try to extract meaningful error message
+                    if (error?.message) {
+                        errorMessage = error.message;
+                        detailedError = error.message;
+                    } else if (typeof error === 'string') {
+                        errorMessage = error;
+                        detailedError = error;
+                    } else if (error?.error?.message) {
+                        errorMessage = error.error.message;
+                        detailedError = error.error.message;
+                    } else if (error?.details) {
+                        errorMessage = error.details;
+                        detailedError = error.details;
+                    } else if (error?.hint) {
+                        errorMessage = error.hint;
+                        detailedError = error.hint;
+                    } else {
+                        // Try to stringify the error object
+                        detailedError = JSON.stringify(error, null, 2);
+                        errorMessage = 'Database error occurred. Check console for details.';
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing error object:', parseError);
+                    detailedError = 'Could not parse error details';
+                }
+                
+                // Handle specific database errors
+                if (detailedError.includes('column') && detailedError.includes('does not exist')) {
+                    errorMessage = 'Database schema error: Missing column. Please contact admin.';
+                } else if (detailedError.includes('violates') || detailedError.includes('constraint')) {
+                    errorMessage = 'Data validation error. Please check all fields.';
+                } else if (detailedError.includes('permission') || detailedError.includes('denied')) {
+                    errorMessage = 'Permission denied. Please login again.';
+                } else if (detailedError.includes('400') || detailedError.includes('Bad Request')) {
+                    errorMessage = 'Invalid data format. Please check all fields and try again.';
+                }
+                
+                console.error('📋 Detailed error information:', {
+                    originalError: error,
+                    errorMessage: errorMessage,
+                    detailedError: detailedError,
+                    errorType: typeof error,
+                    errorKeys: error ? Object.keys(error) : [],
+                    reportData: reportData,
+                    currentUser: currentUser?.email || 'No user'
+                });
+                
+                alert('❌ Error submitting trade report:\n\n' + errorMessage + '\n\nDetailed Error:\n' + detailedError + '\n\nPlease try again or contact support if the problem persists.\n\nTroubleshooting:\n• Check your internet connection\n• Try refreshing the page\n• Make sure all fields are filled correctly\n• Ensure proof file is valid (JPG, PNG, PDF)');
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

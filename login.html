@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP Temporarily Disabled for Testing -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="..."> -->
+    <title>Login - HATS Consulting</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#0f172a',
+                        'accent': '#e11d48',
+                        'accent-hover': '#f43f5e',
+                        'light-bg': '#f1f5f9',
+                        'text-dark': '#0f172a',
+                        'text-medium': '#334155',
+                        'text-light': '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-inter bg-light-bg text-text-medium">
+
+    <div class="flex min-h-screen flex-col items-center justify-center bg-light-bg px-4 py-8">
+        <div class="w-full max-w-md">
+            <!-- Header Logo -->
+            <div class="text-center mb-8">
+                <a href="index.html" class="text-3xl font-bold text-primary font-jakarta">HATS Consulting</a>
+            </div>
+
+            <!-- Form Card -->
+            <div class="bg-white p-8 rounded-xl shadow-lg w-full">
+                <!-- Tab Buttons -->
+                <div class="flex border-b border-gray-200 mb-6">
+                    <button id="login-tab" class="flex-1 py-3 font-bold text-lg border-b-2 border-accent text-accent">Sign In</button>
+                    <button id="signup-tab" class="flex-1 py-3 font-bold text-lg border-b-2 border-transparent text-text-medium/50">Sign Up</button>
+                </div>
+
+                <!-- Login Form -->
+                <div id="login-form">
+                    <h1 class="text-2xl font-bold font-jakarta text-text-dark text-center mb-2">Welcome Back</h1>
+                    <p class="text-center text-text-medium mb-6">Please enter your details to sign in.</p>
+                    <form id="login-form-el" action="#" method="POST">
+                        <div class="mb-4">
+                            <label for="login-email" class="block text-sm font-medium text-text-medium mb-2">Email Address</label>
+                            <input type="email" id="login-email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="you@example.com">
+                        </div>
+                        <div class="mb-6">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="login-password" class="block text-sm font-medium text-text-medium">Password</label>
+                                <button type="button" id="forgot-btn" class="text-sm font-medium text-accent hover:text-accent-hover transition-colors">Forgot password?</button>
+                            </div>
+                            <input type="password" id="login-password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="••••••••">
+                        </div>
+                        <div class="mb-4">
+                            <label for="login-security" class="block text-sm font-medium text-text-medium mb-2">Security Code</label>
+                            <input type="text" id="login-security" name="security" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="Enter your security code (not required for admins)">
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full bg-accent text-white font-bold py-3 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors">
+                                Sign In
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" id="magic-link-btn" class="w-full border-2 border-accent text-accent font-bold py-3 px-4 rounded-lg hover:bg-accent hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors">
+                                Send Magic Link to Email
+                            </button>
+                        </div>
+                    </form>
+                    <p id="login-error" class="mt-3 text-sm text-red-600 hidden"></p>
+                </div>
+
+                <!-- Signup Form (hidden by default) -->
+                <div id="signup-form" class="hidden">
+                    <h1 class="text-2xl font-bold font-jakarta text-text-dark text-center mb-2">Create an Account</h1>
+                    <p class="text-center text-text-medium mb-6">Join us to start your journey to success.</p>
+                    <form id="signup-form-el" action="#" method="POST">
+                        <div class="mb-4">
+                            <label for="fullname" class="block text-sm font-medium text-text-medium mb-2">Full Name</label>
+                            <input type="text" id="fullname" name="fullname" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="John Doe">
+                        </div>
+                        <div class="mb-4">
+                            <label for="signup-email" class="block text-sm font-medium text-text-medium mb-2">Email Address</label>
+                            <input type="email" id="signup-email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="you@example.com">
+                        </div>
+                        <div class="mb-4">
+                            <label for="signup-password" class="block text-sm font-medium text-text-medium mb-2">Password</label>
+                            <input type="password" id="signup-password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="••••••••">
+                        </div>
+                        <div class="mb-6">
+                            <label for="confirm-password" class="block text-sm font-medium text-text-medium mb-2">Confirm Password</label>
+                            <input type="password" id="confirm-password" name="confirm-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition" placeholder="••••••••">
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="w-full bg-accent text-white font-bold py-3 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors">
+                                Sign Up
+                            </button>
+                        </div>
+                    </form>
+                    <p id="signup-error" class="mt-3 text-sm text-red-600 hidden"></p>
+                </div>
+            </div>
+             <div class="text-center mt-6">
+                <a href="index.html" class="text-sm text-text-medium hover:text-text-dark transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="./assets/config.js"></script>
+    <script src="./assets/app.js"></script>
+    
+    <!-- Wait for scripts to load -->
+    <script>
+        // Enhanced script loading detection
+        window.addEventListener('load', function() {
+            const scriptsStatus = {
+                supabase: !!window.supabase,
+                config: !!window.APP_CONFIG,
+                app: !!window.App
+            };
+            console.log('Scripts loaded:', scriptsStatus);
+            
+            // Show loading status to user
+            if (!scriptsStatus.supabase || !scriptsStatus.config || !scriptsStatus.app) {
+                console.error('❌ Critical scripts failed to load:', scriptsStatus);
+                const loginError = document.getElementById('login-error');
+                if (loginError) {
+                    loginError.textContent = 'System loading error. Please refresh the page.';
+                    loginError.classList.remove('hidden');
+                }
+            } else {
+                console.log('✅ All scripts loaded successfully');
+            }
+        });
+    </script>
+    
+    <script>
+        const loginTab = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+
+        loginTab.addEventListener('click', () => {
+            // Show login form, hide signup form
+            loginForm.classList.remove('hidden');
+            signupForm.classList.add('hidden');
+
+            // Style tabs
+            loginTab.classList.add('border-accent', 'text-accent');
+            loginTab.classList.remove('border-transparent', 'text-text-medium/50');
+            signupTab.classList.add('border-transparent', 'text-text-medium/50');
+            signupTab.classList.remove('border-accent', 'text-accent');
+        });
+
+        signupTab.addEventListener('click', () => {
+            // Show signup form, hide login form
+            signupForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+            
+            // Style tabs
+            signupTab.classList.add('border-accent', 'text-accent');
+            signupTab.classList.remove('border-transparent', 'text-text-medium/50');
+            loginTab.classList.add('border-transparent', 'text-text-medium/50');
+            loginTab.classList.remove('border-accent', 'text-accent');
+        });
+
+        // Auth wiring - wait for App to load
+        function initializeAuth() {
+            const loginFormEl = document.getElementById('login-form-el');
+            const loginError = document.getElementById('login-error');
+            
+            if (!loginFormEl) return;
+            
+            loginFormEl.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                loginError.classList.add('hidden');
+                loginError.textContent = '';
+                
+                try {
+                    // Enhanced loading checks
+                    if (!window.supabase) {
+                        throw new Error('Supabase library not loaded. Please refresh the page.');
+                    }
+                    
+                    if (!window.APP_CONFIG) {
+                        throw new Error('Configuration not loaded. Please check config.js file.');
+                    }
+                    
+                    if (!window.App) {
+                        throw new Error('App is still loading. Please wait a moment and try again.');
+                    }
+                    
+                    if (!window.App.signInWithEmail) {
+                        throw new Error('Authentication service not available. Please refresh the page.');
+                    }
+                    
+                    const email = document.getElementById('login-email').value.trim();
+                    const password = document.getElementById('login-password').value;
+                    const code = document.getElementById('login-security').value;
+                    
+                    console.log('🔄 Starting login process for:', email);
+                    
+                    if (!window.APP_CONFIG?.SUPABASE_URL || !window.APP_CONFIG?.SUPABASE_ANON_KEY) {
+                        throw new Error('Missing Supabase configuration. Please check assets/config.js file.');
+                    }
+                    
+                    // Validate input
+                    if (!email || !password) {
+                        throw new Error('Please enter both email and password.');
+                    }
+                    
+                    const { error } = await window.App.signInWithEmail(email, password);
+                if (error) throw error;
+                const session = await window.App.getSession();
+                const user = session?.user;
+                if (!user) throw new Error('No session');
+                
+                console.log('🔄 Auto-creating/updating user profile for:', user.email);
+                
+                // AUTOMATIC PROFILE CREATION/UPDATE - This ensures ALL users appear in admin panel
+                try {
+                    const profileData = {
+                        id: user.id,
+                        email: user.email,
+                        full_name: user.user_metadata?.full_name || user.user_metadata?.fullname || user.email.split('@')[0],
+                        status: 'active',
+                        last_sign_in_at: new Date().toISOString(),
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+                    
+                    // Use upsert to create or update profile
+                    const { error: profileError } = await window.App.supabase
+                        .from('profiles')
+                        .upsert(profileData, { 
+                            onConflict: 'id',
+                            ignoreDuplicates: false 
+                        });
+                    
+                    if (profileError) {
+                        console.error('Profile upsert error:', profileError);
+                        throw new Error(`Profile update failed: ${profileError.message}`);
+                    }
+                    
+                    console.log('✅ Profile automatically created/updated for:', user.email);
+                    
+                    // Also create earnings record if not exists
+                    const { error: earningsError } = await window.App.supabase
+                        .from('earnings')
+                        .upsert({
+                            user_id: user.id,
+                            today_earnings: 0,
+                            week_earnings: 0,
+                            month_earnings: 0,
+                            updated_at: new Date().toISOString()
+                        }, { 
+                            onConflict: 'user_id',
+                            ignoreDuplicates: true 
+                        });
+                    
+                    if (earningsError) {
+                        console.log('Note: Earnings record creation failed (may already exist):', earningsError);
+                    } else {
+                        console.log('✅ Earnings record ensured for:', user.email);
+                    }
+                    
+                } catch (profileError) {
+                    console.error('❌ Error in automatic profile creation:', profileError);
+                    // Don't fail login if profile update fails
+                }
+                
+                // Legacy profile update call for compatibility
+                try {
+                    await window.App.upsertProfile(user.id, { 
+                        email: user.email, 
+                        full_name: user.user_metadata?.fullname || user.email.split('@')[0] 
+                    });
+                } catch (legacyError) {
+                    console.log('Legacy profile update failed:', legacyError);
+                }
+                
+                // Enhanced security code validation for non-admins
+                if (!window.App.isAdmin(user)) {
+                  const code = document.getElementById('login-security').value.trim();
+                  console.log('🔐 Validating security code for non-admin user');
+                  
+                  if (!code) {
+                    throw new Error('Security code is required for regular users. Admins can login without a code.');
+                  }
+                  
+                  const { error: approveErr } = await window.App.approveSelfWithCode(user.id, code);
+                  if (approveErr) {
+                    throw new Error(`Invalid security code: ${approveErr.message}`);
+                  }
+                  
+                  console.log('✅ Security code validated successfully');
+                } else {
+                  console.log('👑 Admin login - security code not required');
+                }
+                
+                // Clear any redirect flags before redirecting
+                sessionStorage.removeItem('lastAdminRedirect');
+                sessionStorage.removeItem('adminRedirectCount');
+                
+                if (user && window.App.isAdmin(user)) {
+                  console.log('Admin login successful, redirecting to admin.html');
+                  window.location.replace('admin.html');
+                } else {
+                  console.log('User login successful, redirecting to dashboard.html');
+                  window.location.replace('dashboard.html');
+                }
+            } catch (err) {
+                console.error('❌ Login failed:', err);
+                const errorMessage = err.message || 'Sign-in failed. Please try again.';
+                loginError.textContent = errorMessage;
+                loginError.classList.remove('hidden');
+                
+                // Clear password field on error for security
+                document.getElementById('login-password').value = '';
+            }
+        });
+    }
+    
+    // Initialize auth when page loads
+    setTimeout(() => {
+        if (window.App && window.App.signInWithEmail) {
+            initializeAuth();
+            console.log('✅ Auth initialized successfully');
+        } else {
+            console.error('❌ App not loaded, retrying...');
+            setTimeout(() => {
+                if (window.App) {
+                    initializeAuth();
+                    console.log('✅ Auth initialized on retry');
+                } else {
+                    console.error('❌ App failed to load. Check app.js');
+                }
+            }, 1000);
+        }
+    }, 500);
+
+        // Forgot password
+        document.getElementById('forgot-btn').addEventListener('click', async () => {
+            loginError.classList.add('hidden');
+            loginError.textContent = '';
+            try {
+                const email = document.getElementById('login-email').value.trim();
+                if (!email) throw new Error('Enter your email first');
+                const { error } = await window.App.supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/public/login.html' });
+                if (error) throw error;
+                alert('Password reset email sent.');
+            } catch (err) {
+                loginError.textContent = err.message || 'Failed to send reset email';
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        const signupFormEl = document.getElementById('signup-form-el');
+        const signupError = document.getElementById('signup-error');
+        signupFormEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            signupError.classList.add('hidden');
+            signupError.textContent = '';
+            try {
+                const fullname = document.getElementById('fullname').value.trim();
+                const email = document.getElementById('signup-email').value.trim();
+                const password = document.getElementById('signup-password').value;
+                const confirm = document.getElementById('confirm-password').value;
+                if (password !== confirm) throw new Error('Passwords do not match');
+                if (!window.APP_CONFIG?.SUPABASE_URL || !window.APP_CONFIG?.SUPABASE_ANON_KEY) {
+                    throw new Error('Missing Supabase config. Edit assets/config.js');
+                }
+                const { data, error } = await window.App.signUpWithEmail(email, password, { fullname });
+                if (error) throw error;
+                
+                console.log('🔄 Auto-creating profile for new signup:', email);
+                
+                // AUTOMATIC PROFILE CREATION FOR NEW SIGNUPS
+                if (data?.user) {
+                    try {
+                        const profileData = {
+                            id: data.user.id,
+                            email: email,
+                            full_name: fullname || email.split('@')[0],
+                            status: 'active',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        };
+                        
+                        // Create profile immediately
+                        const { error: profileError } = await window.App.supabase
+                            .from('profiles')
+                            .insert(profileData);
+                        
+                        if (profileError) {
+                            console.error('Profile creation error during signup:', profileError);
+                        } else {
+                            console.log('✅ Profile automatically created for new user:', email);
+                        }
+                        
+                        // Create earnings record
+                        const { error: earningsError } = await window.App.supabase
+                            .from('earnings')
+                            .insert({
+                                user_id: data.user.id,
+                                today_earnings: 0,
+                                week_earnings: 0,
+                                month_earnings: 0,
+                                updated_at: new Date().toISOString()
+                            });
+                        
+                        if (earningsError) {
+                            console.log('Note: Earnings record creation failed:', earningsError);
+                        } else {
+                            console.log('✅ Earnings record created for new user:', email);
+                        }
+                        
+                    } catch (profileError) {
+                        console.error('❌ Error in automatic profile creation during signup:', profileError);
+                        // Don't fail signup if profile creation fails
+                    }
+                }
+                
+                // notify admins that a user is pending (will still need code at login)
+                window.App.notifyAdminsOfPendingSignup(email);
+                alert('Sign up successful. Verify your email. Users will need a valid security code to login. Admins do not.');
+                loginTab.click();
+            } catch (err) {
+                signupError.textContent = err.message || 'Sign-up failed';
+                signupError.classList.remove('hidden');
+            }
+        });
+
+        // Already signed in → redirect (with better timing and error handling)
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceLogin = urlParams.get('force') === 'true';
+            const logout = urlParams.get('logout') === 'true';
+            
+            if (forceLogin || logout) {
+                console.log('Force login or logout detected, staying on login page');
+                return;
+            }
+            
+            try {
+                // Check for force logout flag
+                if (localStorage.getItem('force_logout') === 'true') {
+                    localStorage.removeItem('force_logout');
+                    // Clear any remaining auth data
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    console.log('Forced logout detected, session cleared');
+                    return;
+                }
+                
+                // Add delay to ensure all scripts are loaded
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const session = await window.App.getSession();
+                const user = session?.user;
+                if (user) {
+                    console.log('User already logged in, redirecting...');
+                    // Clear any redirect flags
+                    sessionStorage.removeItem('lastAdminRedirect');
+                    sessionStorage.removeItem('adminRedirectCount');
+                    
+                    if (window.App.isAdmin(user)) {
+                        console.log('Redirecting admin to admin.html');
+                        window.location.replace('admin.html');
+                    } else {
+                        console.log('Redirecting user to dashboard.html');
+                        window.location.replace('dashboard.html');
+                    }
+                }
+            } catch (error) {
+                console.error('Session check failed:', error);
+                // If there's an error checking session, stay on login page
+            }
+        });
+    </script>
+</body>
+</html>
+

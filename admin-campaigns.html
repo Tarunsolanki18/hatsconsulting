@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaigns Management - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+    <script src="auth-fix.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-purple-800">Campaign Management</h1>
+            <div>
+                <button id="add-campaign-btn" onclick="showAddCampaignForm()" class="mr-4 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+                    <i class="fas fa-plus mr-2"></i> Add Campaign
+                </button>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold mb-4">All Campaigns</h2>
+            <div id="campaigns-container">
+                <div class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-4xl text-purple-600 mb-4"></i>
+                    <p>Loading campaigns...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Campaign Modal -->
+    <div id="campaign-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="campaign-form-title" class="text-xl font-bold text-purple-800">Add New Campaign</h2>
+                <button onclick="closeCampaignModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="campaign-form" class="space-y-4">
+                <input type="hidden" id="campaign-id">
+                
+                <div>
+                    <label for="campaign-name" class="block text-sm font-medium text-gray-700 mb-1">Campaign Name *</label>
+                    <input type="text" id="campaign-name" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                </div>
+                
+                <div>
+                    <label for="campaign-description" class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                    <textarea id="campaign-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="campaign-start-date" class="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                        <input type="date" id="campaign-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                    </div>
+                    
+                    <div>
+                        <label for="campaign-end-date" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                        <input type="date" id="campaign-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="campaign-reward" class="block text-sm font-medium text-gray-700 mb-1">Reward Amount (₹)</label>
+                    <input type="number" id="campaign-reward" class="w-full px-3 py-2 border border-gray-300 rounded-md" min="0">
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="campaign-is-active" class="h-4 w-4 text-purple-600 border-gray-300 rounded">
+                    <label for="campaign-is-active" class="ml-2 block text-sm text-gray-700">Active Campaign</label>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeCampaignModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
+                        Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize page and load campaigns
+        async function initPage() {
+            try {
+                const user = await window.App.requireAdmin();
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                await loadCampaigns();
+            } catch (error) {
+                console.error('Error initializing admin page:', error);
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Load all campaigns from database
+        async function loadCampaigns() {
+            try {
+                document.getElementById('campaigns-container').innerHTML = `
+                    <div class="flex justify-center items-center p-8">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    </div>
+                `;
+                
+                const { data, error } = await window.App.supabase
+                    .from('campaigns')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                displayCampaigns(data || []);
+            } catch (error) {
+                console.error('Error loading campaigns:', error);
+                document.getElementById('campaigns-container').innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-red-600">Error loading campaigns. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display campaigns in the UI
+        function displayCampaigns(campaigns) {
+            const container = document.getElementById('campaigns-container');
+            
+            if (campaigns.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-info-circle text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-gray-600">No campaigns found. Click "Add Campaign" button to create a new one.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            campaigns.forEach(campaign => {
+                const statusClass = campaign.is_active 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-800';
+                const statusText = campaign.is_active ? 'Active' : 'Inactive';
+                
+                html += `
+                    <div class="bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-purple-700">${campaign.name}</h3>
+                                <p class="text-sm text-gray-600 mt-1">${campaign.description}</p>
+                                <div class="mt-2">
+                                    <span class="text-sm font-medium">Start: ${new Date(campaign.start_date).toLocaleDateString()}</span>
+                                    ${campaign.end_date ? ` - <span class="text-sm font-medium">End: ${new Date(campaign.end_date).toLocaleDateString()}</span>` : ''}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
+                                    ${campaign.reward ? `<span class="ml-2 px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Reward: ₹${campaign.reward}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="toggleCampaignStatus('${campaign.id}', ${!campaign.is_active})" class="p-2 rounded-full hover:bg-gray-100">
+                                    <i class="fas ${campaign.is_active ? 'fa-toggle-on text-green-600' : 'fa-toggle-off text-gray-400'} text-lg"></i>
+                                </button>
+                                <button onclick="editCampaign('${campaign.id}')" class="p-2 rounded-full hover:bg-gray-100">
+                                    <i class="fas fa-edit text-blue-600"></i>
+                                </button>
+                                <button onclick="deleteCampaign('${campaign.id}')" class="p-2 rounded-full hover:bg-gray-100">
+                                    <i class="fas fa-trash-alt text-red-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Show add campaign form
+        function showAddCampaignForm() {
+            document.getElementById('modal-title').textContent = 'कैंपेन जोड़ें';
+            document.getElementById('campaign-id').value = '';
+            document.getElementById('campaign-form').reset();
+            
+            document.getElementById('campaign-modal').classList.remove('hidden');
+            document.getElementById('campaign-modal').classList.add('flex');
+        }
+
+        // Edit campaign
+        function editCampaign(campaignId) {
+            document.getElementById('modal-title').textContent = 'कैंपेन संपादित करें';
+            
+            // Fetch campaign details and populate form
+            window.App.supabase
+                .from('campaigns')
+                .select('*')
+                .eq('id', campaignId)
+                .single()
+                .then(({ data, error }) => {
+                    if (error) {
+                        alert('कैंपेन डेटा प्राप्त करने में त्रुटि: ' + error.message);
+                        return;
+                    }
+                    
+                    document.getElementById('campaign-id').value = campaignId;
+                    document.getElementById('campaign-title').value = data.title || '';
+                    document.getElementById('campaign-description').value = data.description || '';
+                    document.getElementById('campaign-start-date').value = data.start_date ? new Date(data.start_date).toISOString().split('T')[0] : '';
+                    document.getElementById('campaign-end-date').value = data.end_date ? new Date(data.end_date).toISOString().split('T')[0] : '';
+                    document.getElementById('campaign-reward').value = data.reward_amount || 0;
+                    document.getElementById('campaign-type').value = data.campaign_type || '';
+                    document.getElementById('campaign-target').value = data.target_count || '';
+                    document.getElementById('campaign-is-active').checked = data.is_active;
+                    
+                    document.getElementById('campaign-modal').classList.remove('hidden');
+                    document.getElementById('campaign-modal').classList.add('flex');
+                });
+        }
+
+        // Close campaign modal
+        function closeCampaignModal() {
+            document.getElementById('campaign-modal').classList.add('hidden');
+            document.getElementById('campaign-modal').classList.remove('flex');
+        }
+
+        // Delete campaign
+        async function deleteCampaign(campaignId) {
+            if (!confirm('क्या आप वाकई इस कैंपेन को हटाना चाहते हैं?')) return;
+
+            try {
+                const { error } = await window.App.supabase
+                    .from('campaigns')
+                    .delete()
+                    .eq('id', campaignId);
+                
+                if (error) throw error;
+                
+                alert('कैंपेन सफलतापूर्वक हटा दिया गया!');
+                await loadCampaigns();
+            } catch (error) {
+                alert('कैंपेन हटाने में त्रुटि: ' + error.message);
+            }
+        }
+
+        // Toggle campaign status
+        async function toggleCampaignStatus(campaignId, newStatus) {
+            try {
+                const { error } = await window.App.supabase
+                    .from('campaigns')
+                    .update({ is_active: newStatus })
+                    .eq('id', campaignId);
+                
+                if (error) throw error;
+                
+                alert(`कैंपेन सफलतापूर्वक ${newStatus ? 'सक्रिय' : 'निष्क्रिय'} कर दिया गया!`);
+                await loadCampaigns();
+            } catch (error) {
+                alert('कैंपेन स्थिति अपडेट करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        // Handle campaign form submission
+        document.getElementById('campaign-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const campaignId = document.getElementById('campaign-id').value;
+            const isEdit = !!campaignId;
+            
+            const campaignData = {
+                title: document.getElementById('campaign-title').value,
+                description: document.getElementById('campaign-description').value,
+                start_date: document.getElementById('campaign-start-date').value,
+                end_date: document.getElementById('campaign-end-date').value,
+                reward_amount: parseFloat(document.getElementById('campaign-reward').value) || 0,
+                campaign_type: document.getElementById('campaign-type').value,
+                target_count: parseInt(document.getElementById('campaign-target').value) || null,
+                is_active: document.getElementById('campaign-is-active').checked
+            };
+
+            try {
+                let result;
+                
+                if (isEdit) {
+                    // Update existing campaign
+                    result = await window.App.supabase
+                        .from('campaigns')
+                        .update(campaignData)
+                        .eq('id', campaignId);
+                } else {
+                    // Add new campaign
+                    result = await window.App.supabase
+                        .from('campaigns')
+                        .insert([campaignData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                alert(`कैंपेन सफलतापूर्वक ${isEdit ? 'अपडेट' : 'जोड़ा'} गया!`);
+                closeCampaignModal();
+                await loadCampaigns();
+            } catch (error) {
+                alert(`कैंपेन ${isEdit ? 'अपडेट' : 'जोड़ने'} में त्रुटि: ` + error.message);
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = 'login.html?logout=true';
+        }
+
+        // Initialize page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes Cleaning Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6">
+                <i class="fas fa-broom mr-3 text-blue-600"></i>
+                Notes Cleaning Test
+            </h1>
+            
+            <div class="mb-6">
+                <p class="text-gray-600">This tool tests the notes cleaning functionality to ensure user notes are properly separated from base64 proof data.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-xl font-semibold mb-4">Test Input</h2>
+                    <textarea id="testInput" class="w-full h-64 p-4 border border-gray-300 rounded-lg font-mono text-sm" placeholder="Paste notes here to test cleaning...">Trade report for Zerodha account opening | Customer Name: John Doe | Mobile: 9999999999 | Payment Proof: data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD//gASTEVBUEZST0c=</textarea>
+                    <button onclick="testCleaning()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-play mr-2"></i>Test Cleaning
+                    </button>
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-semibold mb-4">Cleaned Output</h2>
+                    <div id="testOutput" class="w-full h-64 p-4 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm">
+                        <!-- Output will appear here -->
+                    </div>
+                    <div id="testStats" class="mt-4 text-sm text-gray-600">
+                        <!-- Stats will appear here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h2 class="text-xl font-semibold mb-4">Test Cases</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="loadTestCase(1)" class="bg-green-100 hover:bg-green-200 p-4 rounded-lg text-left transition-colors">
+                        <div class="font-semibold text-green-800">Test 1: Simple Notes</div>
+                        <div class="text-sm text-green-600">Clean text notes without base64 data</div>
+                    </button>
+
+                    <button onclick="loadTestCase(2)" class="bg-yellow-100 hover:bg-yellow-200 p-4 rounded-lg text-left transition-colors">
+                        <div class="font-semibold text-yellow-800">Test 2: Image Proof</div>
+                        <div class="text-sm text-yellow-600">Notes with embedded image base64 data</div>
+                    </button>
+
+                    <button onclick="loadTestCase(3)" class="bg-red-100 hover:bg-red-200 p-4 rounded-lg text-left transition-colors">
+                        <div class="font-semibold text-red-800">Test 3: PDF Proof</div>
+                        <div class="text-sm text-red-600">Notes with embedded PDF base64 data</div>
+                    </button>
+
+                    <button onclick="loadTestCase(4)" class="bg-purple-100 hover:bg-purple-200 p-4 rounded-lg text-left transition-colors">
+                        <div class="font-semibold text-purple-800">Test 4: Mixed Data</div>
+                        <div class="text-sm text-purple-600">Complex notes with multiple proof types</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to extract clean user notes (same as admin.html)
+        function extractCleanNotes(notes) {
+            if (!notes) return '';
+            
+            let cleanNotes = notes;
+            
+            // Remove image base64 data
+            cleanNotes = cleanNotes.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+\/=]+/g, '');
+            
+            // Remove PDF base64 data
+            cleanNotes = cleanNotes.replace(/data:application\/pdf;base64,[A-Za-z0-9+\/=]+/g, '');
+            
+            // Remove any other base64 data patterns
+            cleanNotes = cleanNotes.replace(/data:[^;]+;base64,[A-Za-z0-9+\/=]+/g, '');
+            
+            // Clean up labels and separators
+            cleanNotes = cleanNotes.replace(/Payment Proof:/g, '');
+            cleanNotes = cleanNotes.replace(/Trade Proof:/g, '');
+            cleanNotes = cleanNotes.replace(/Proof:/g, '');
+            
+            // Clean up extra whitespace and separators
+            cleanNotes = cleanNotes.replace(/\s*\|\s*/g, ' '); // Remove pipe separators
+            cleanNotes = cleanNotes.replace(/\s+/g, ' '); // Replace multiple spaces with single space
+            cleanNotes = cleanNotes.trim(); // Trim leading/trailing whitespace
+            
+            // Remove common separators that might be left over
+            cleanNotes = cleanNotes.replace(/^[|\-\s]+|[|\-\s]+$/g, '');
+            
+            return cleanNotes;
+        }
+
+        function testCleaning() {
+            const input = document.getElementById('testInput').value;
+            const output = document.getElementById('testOutput');
+            const stats = document.getElementById('testStats');
+            
+            const cleaned = extractCleanNotes(input);
+            
+            // Display results
+            output.innerHTML = cleaned ? `<div class="text-green-800">${cleaned}</div>` : '<div class="text-gray-400 italic">No clean text found</div>';
+            
+            // Calculate stats
+            const originalLength = input.length;
+            const cleanedLength = cleaned.length;
+            const removedLength = originalLength - cleanedLength;
+            const reductionPercent = originalLength > 0 ? Math.round((removedLength / originalLength) * 100) : 0;
+            
+            stats.innerHTML = `
+                <div class="space-y-1">
+                    <div>Original length: <span class="font-mono">${originalLength}</span> characters</div>
+                    <div>Cleaned length: <span class="font-mono">${cleanedLength}</span> characters</div>
+                    <div>Removed: <span class="font-mono">${removedLength}</span> characters (${reductionPercent}%)</div>
+                    <div class="text-${cleanedLength > 0 ? 'green' : 'yellow'}-600 font-semibold">
+                        ${cleanedLength > 0 ? '✅ Clean notes extracted' : '⚠️ No readable notes found'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadTestCase(caseNumber) {
+            const testInput = document.getElementById('testInput');
+            
+            switch(caseNumber) {
+                case 1:
+                    testInput.value = "Trade report submitted for Zerodha account. Customer Name: John Doe. Mobile: 9999999999. Account opened successfully after video verification.";
+                    break;
+                    
+                case 2:
+                    testInput.value = "Account opening report | Customer: Jane Smith | Mobile: 8888888888 | Payment Proof: data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD//gASTEVBUEZST0c= | Account verification pending";
+                    break;
+                    
+                case 3:
+                    testInput.value = "Trade report for Angel Broking | Payment Proof: data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKFRyYWRlIFJlcG9ydCkKL0NyZWF0b3IgKFVzZXIpCj4+CmVuZG9iago= | Trade completed successfully with profit of ₹5000";
+                    break;
+                    
+                case 4:
+                    testInput.value = "Complex report | Customer: Mike Johnson | Payment Proof: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII= | Trade Proof: data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKFRyYWRlIFByb29mKQo+PgplbmRvYmoK | Both account opening and trade completed | Mobile: 7777777777";
+                    break;
+            }
+            
+            testCleaning();
+        }
+
+        // Load first test case by default
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTestCase(1);
+        });
+    </script>
+</body>
+</html>

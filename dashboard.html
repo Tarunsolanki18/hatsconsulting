@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP Temporarily Disabled for Testing -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="..."> -->
+    <title>Dashboard - HATS Consulting</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Check if Supabase is loaded
+        if (!window.supabase) {
+            console.error('Supabase not loaded!');
+            document.body.innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                    <h1>Error Loading Application</h1>
+                    <p>Failed to load required resources. Please check your internet connection and refresh the page.</p>
+                    <p>If the problem persists, please contact support.</p>
+                    <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Refresh Page
+                    </button>
+                </div>
+            `;
+            throw new Error('Supabase not loaded');
+        }
+    </script>
+    <script src="assets/config.js"></script>
+    <script>
+        // Create global App object that will be populated by app.js
+        window.App = window.App || {};
+        
+        // Check if config is loaded
+        if (!window.APP_CONFIG) {
+            console.error('Configuration not loaded!');
+            throw new Error('Configuration not loaded');
+        }
+    </script>
+    <script src="assets/app.js"></script>
+    <script src="assets/security.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#8B5CF6',
+                        'accent': '#E11D48',
+                        'accent-hover': '#F43F5E',
+                        'light-bg': '#F8FAFC',
+                        'text-dark': '#0F172A',
+                        'text-medium': '#334155',
+                        'text-light': '#FFFFFF',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .counter-animation {
+            animation: countUp 2s ease-out forwards;
+        }
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .counter-animation {
+            animation: countUp 2s ease-out forwards;
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="font-inter bg-light-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-rocket text-primary text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white font-jakarta">HATS Consulting</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-white text-sm">
+                        <span id="user-name">Loading...</span>
+                    </div>
+                    <button onclick="logout()" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-hover transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-text-medium">Loading dashboard...</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Profile Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex items-center space-x-6">
+                <div class="relative">
+                    <div id="profile-photo" class="w-20 h-20 rounded-full border-4 border-primary bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+                        <i class="fas fa-user text-white text-2xl"></i>
+                    </div>
+                    <input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="uploadProfilePhoto()">
+                    <div class="absolute -bottom-2 -right-2 bg-primary text-white rounded-full p-2 cursor-pointer hover:bg-purple-600 transition-colors" onclick="document.getElementById('photo-upload').click()">
+                        <i class="fas fa-camera text-sm"></i>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h2 id="user-full-name" class="text-2xl font-bold text-text-dark font-jakarta">Loading...</h2>
+                    <p class="text-primary font-semibold text-lg">100% Zero Investment Online Platform</p>
+                    <p class="text-text-medium">Welcome to your dashboard</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earnings Section (Initially Hidden) -->
+        <div id="earnings-section" class="bg-gradient-to-r from-primary to-purple-600 rounded-2xl shadow-lg p-6 mb-8 text-white hidden">
+            <h3 class="text-xl font-bold font-jakarta mb-4">Your Earnings</h3>
+            <div class="space-y-6">
+                <!-- Today Earnings -->
+                <div class="bg-white/10 rounded-xl p-4 text-center">
+                    <div class="text-3xl md:text-4xl font-bold counter-animation" id="today-earnings">₹0</div>
+                    <div class="text-purple-200 text-lg font-medium mt-1">Today's Earnings</div>
+                </div>
+                
+                <!-- This Week Earnings -->
+                <div class="bg-white/10 rounded-xl p-4 text-center">
+                    <div class="text-3xl md:text-4xl font-bold counter-animation" id="week-earnings">₹0</div>
+                    <div class="text-purple-200 text-lg font-medium mt-1">This Week</div>
+                </div>
+                
+                <!-- This Month Earnings -->
+                <div class="bg-white/10 rounded-xl p-4 text-center">
+                    <div class="text-3xl md:text-4xl font-bold counter-animation" id="month-earnings">₹0</div>
+                    <div class="text-purple-200 text-lg font-medium mt-1">This Month</div>
+                </div>
+                
+                <!-- All Time Earnings -->
+                <div class="bg-white/10 rounded-xl p-4 text-center border-2 border-white/20">
+                    <div class="text-4xl md:text-5xl font-bold counter-animation" id="total-earnings">₹0</div>
+                    <div class="text-purple-200 text-xl font-medium mt-1">All Time Earnings</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Cards -->
+        <div id="main-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Dashboard Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer" onclick="showDashboard()">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-tachometer-alt text-primary text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text-dark font-jakarta">Dashboard</h3>
+                        <p class="text-text-medium">View your performance and stats</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Work Report Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer" onclick="showSubmitWork()">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-upload text-green-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text-dark font-jakarta">Submit Work Report</h3>
+                        <p class="text-text-medium">Submit your completed work</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Check Reports Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer" onclick="showMyReports()">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text-dark font-jakarta">Check Reports</h3>
+                        <p class="text-text-medium">View your submitted reports</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Campaign Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer" onclick="showLiveCampaigns()">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-bullhorn text-orange-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text-dark font-jakarta">Live Campaign</h3>
+                        <p class="text-text-medium">View active campaigns</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let currentUser = null;
+        let userEarnings = null;
+
+        // Initialize dashboard
+        async function initDashboard() {
+            try {
+                // Check if user is authenticated
+                const session = await App.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // Get current user from session
+                currentUser = session.user;
+                
+                // Load user profile first
+                const { data: profile } = await App.supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                    
+                // Update last login time if profile exists
+                if (profile) {
+                    await App.supabase
+                        .from('profiles')
+                        .update({ 
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', currentUser.id);
+                }
+
+                if (profile) {
+                    document.getElementById('user-name').textContent = profile.full_name || currentUser.email;
+                    document.getElementById('user-full-name').textContent = profile.full_name || currentUser.email;
+                    
+                    // Load saved profile photo with localStorage fallback
+                    const profileDiv = document.getElementById('profile-photo');
+                    let photoUrl = profile.photo_url;
+                    
+                    // If no photo in database, check localStorage
+                    if (!photoUrl) {
+                        photoUrl = localStorage.getItem(`profile_photo_${currentUser.id}`);
+                        console.log('🔍 Checking localStorage for profile photo:', photoUrl ? 'Found' : 'Not found');
+                    }
+                    
+                    if (photoUrl) {
+                        console.log('✅ Loading saved profile photo:', photoUrl);
+                        profileDiv.innerHTML = `<img src="${photoUrl}" alt="Profile" class="w-full h-full rounded-full object-cover">`;
+                        
+                        // If photo was from localStorage, update database
+                        if (!profile.photo_url && photoUrl) {
+                            console.log('💾 Syncing localStorage photo to database...');
+                            try {
+                                await App.supabase
+                                    .from('profiles')
+                                    .update({ photo_url: photoUrl })
+                                    .eq('id', currentUser.id);
+                                console.log('✅ Photo synced to database');
+                            } catch (syncError) {
+                                console.log('⚠️ Could not sync photo to database:', syncError);
+                            }
+                        }
+                    } else {
+                        console.log('📷 No profile photo found, using default icon');
+                    }
+                }
+
+                // Update last login time for this dashboard visit
+                try {
+                    await App.supabase
+                        .from('profiles')
+                        .upsert({ 
+                            id: currentUser.id,
+                            email: currentUser.email,
+                            full_name: profile?.full_name || currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.email.split('@')[0],
+                            last_sign_in_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                    console.log('Dashboard visit logged');
+                } catch (updateError) {
+                    console.error('Error updating login time:', updateError);
+                }
+
+                // Load earnings
+                await loadEarnings();
+                
+                // Start real-time earnings monitoring
+                startEarningsMonitoring();
+                
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                await App.signOut();
+            }
+        }
+
+        // ENHANCED Load user earnings with real-time updates including All Time Earnings
+        async function loadEarnings() {
+            try {
+                console.log('Loading earnings for user:', currentUser.id);
+                
+                // First, log the structure of the earnings table for debugging
+                const { data: allEarnings, error: fetchError } = await window.App.supabase
+                    .from('earnings')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .limit(1);
+                
+                console.log('Initial earnings table structure:', allEarnings);
+                
+                // Then fetch the latest earnings
+                const { data: earnings, error } = await window.App.supabase
+                    .from('earnings')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                    throw error;
+                }
+                
+                userEarnings = earnings;
+                
+                if (earnings) {
+                    // Use new column names if available, fall back to old ones
+                    const todayEarnings = earnings.today_earnings !== undefined ? earnings.today_earnings : (earnings.today || 0);
+                    const weekEarnings = earnings.week_earnings !== undefined ? earnings.week_earnings : (earnings.week || 0);
+                    const monthEarnings = earnings.month_earnings !== undefined ? earnings.month_earnings : (earnings.total || 0);
+                    const allTimeEarnings = earnings.all_time_earnings !== undefined ? earnings.all_time_earnings : (earnings.total || 0);
+                    
+                    console.log('Current earnings:', {
+                        today: todayEarnings,
+                        week: weekEarnings,
+                        month: monthEarnings,
+                        allTime: allTimeEarnings,
+                        updated: earnings.updated_at
+                    });
+                    
+                    // Animate counters with values
+                    animateCounter('today-earnings', todayEarnings);
+                    animateCounter('week-earnings', weekEarnings);
+                    animateCounter('month-earnings', monthEarnings);
+                    animateCounter('alltime-earnings', allTimeEarnings);
+                    
+                    // Store last update time for change detection
+                    window.lastEarningsUpdate = earnings.updated_at;
+                } else {
+                    console.log('No earnings record found, showing zeros');
+                    // If no earnings record exists, show zeros
+                    animateCounter('today-earnings', 0);
+                    animateCounter('week-earnings', 0);
+                    animateCounter('month-earnings', 0);
+                    animateCounter('alltime-earnings', 0);
+                }
+            } catch (error) {
+                console.error('Error loading earnings:', error);
+                // Show zeros on error
+                animateCounter('today-earnings', 0);
+                animateCounter('week-earnings', 0);
+                animateCounter('month-earnings', 0);
+                animateCounter('alltime-earnings', 0);
+            }
+        }
+        
+        // REAL-TIME EARNINGS MONITORING - Checks for updates from admin including All Time
+        async function startEarningsMonitoring() {
+            console.log('Starting real-time earnings monitoring...');
+            
+            // Check for updates every 5 seconds
+            setInterval(async () => {
+                try {
+                    // First, let's log the structure of the earnings table for debugging
+                    const { data: allEarnings, error: fetchError } = await window.App.supabase
+                        .from('earnings')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .limit(1);
+                    
+                    console.log('Earnings table structure:', allEarnings);
+                    
+                    // Then fetch the latest earnings
+                    const { data: latestEarnings, error } = await window.App.supabase
+                        .from('earnings')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .order('updated_at', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    if (!error && latestEarnings) {
+                        // Check if earnings were updated since last check
+                        if (window.lastEarningsUpdate !== latestEarnings.updated_at) {
+                            // Use the correct column names from the database
+                            const todayEarnings = latestEarnings.today || 0;
+                            const weekEarnings = latestEarnings.week || 0;
+                            const monthEarnings = latestEarnings.total || 0;
+                            const allTimeEarnings = latestEarnings.total || 0;
+                            
+                            console.log('Earnings updated by admin! Triggering counter animation...');
+                            console.log('New values:', {
+                                today: todayEarnings,
+                                week: weekEarnings,
+                                month: monthEarnings,
+                                allTime: allTimeEarnings
+                            });
+                            
+                            // Show notification
+                            if (window.showEarningsUpdatedNotification) {
+                                showNotification('Earnings updated!', 'success');
+                            }
+                            
+                            // Re-animate counters with new values including all time
+                            animateCounter('today-earnings', todayEarnings);
+                            animateCounter('week-earnings', weekEarnings);
+                            animateCounter('month-earnings', monthEarnings);
+                            animateCounter('alltime-earnings', allTimeEarnings);
+                            
+                            // Update stored values
+                            userEarnings = latestEarnings;
+                            window.lastEarningsUpdate = latestEarnings.updated_at;
+                        }
+                    }
+                } catch (monitorError) {
+                    // Silently handle monitoring errors to avoid spam
+                    console.log('Earnings monitoring check failed:', monitorError);
+                }
+            }, 5000); // Check every 5 seconds
+        }
+
+        // Animate counter
+        function animateCounter(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const startValue = 0;
+            const duration = 2000;
+            const increment = targetValue / (duration / 16);
+            let currentValue = startValue;
+
+            const timer = setInterval(() => {
+                currentValue += increment;
+                if (currentValue >= targetValue) {
+                    currentValue = targetValue;
+                    clearInterval(timer);
+                }
+                element.textContent = `₹${Math.floor(currentValue)}`;
+            }, 16);
+        }
+
+        // Enhanced profile photo upload with better error handling
+        async function uploadProfilePhoto() {
+            const fileInput = document.getElementById('photo-upload');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('Please upload a valid image file (JPG, PNG, GIF, or WEBP)');
+                return;
+            }
+
+            // Validate file size (2MB max)
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            if (file.size > maxSize) {
+                alert('Image is too large. Please use an image smaller than 2MB');
+                return;
+            }
+
+            // Show loading state
+            const profileDiv = document.getElementById('profile-photo');
+            const originalContent = profileDiv.innerHTML;
+            profileDiv.style.opacity = '0.5';
+            profileDiv.innerHTML = '<i class="fas fa-spinner fa-spin text-white text-2xl"></i>';
+            
+            // Add loading indicator to upload button area
+            const uploadArea = profileDiv.parentElement.querySelector('.bg-primary');
+            const originalUploadContent = uploadArea.innerHTML;
+            uploadArea.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                console.log('🔄 Starting profile photo upload...');
+                
+                let uploadResult;
+                
+                try {
+                    // Method 1: Try Supabase storage upload
+                    const fileName = `${currentUser.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                    
+                    const { data, error } = await App.supabase.storage
+                        .from('avatars')
+                        .upload(fileName, file, { 
+                            upsert: true,
+                            contentType: file.type
+                        });
+
+                    if (error) throw error;
+
+                    // Get public URL
+                    const { data: urlData } = App.supabase.storage
+                        .from('avatars')
+                        .getPublicUrl(data.path);
+
+                    uploadResult = { publicUrl: urlData.publicUrl };
+                    console.log('✅ Storage upload successful!');
+
+                } catch (storageError) {
+                    console.log('⚠️ Storage upload failed, using base64 fallback...');
+                    
+                    // Method 2: Base64 fallback
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    uploadResult = { publicUrl: base64 };
+                    console.log('✅ Base64 fallback successful!');
+                }
+
+                // Update profile in database
+                await App.supabase
+                    .from('profiles')
+                    .update({ 
+                        photo_url: uploadResult.publicUrl,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentUser.id);
+
+                // Save to localStorage as backup
+                localStorage.setItem(`profile_photo_${currentUser.id}`, uploadResult.publicUrl);
+                console.log('💾 Profile photo saved to localStorage as backup');
+
+                // Update UI - convert div to img for uploaded photo
+                profileDiv.innerHTML = `<img src="${uploadResult.publicUrl}" alt="Profile" class="w-full h-full rounded-full object-cover">`;
+                profileDiv.style.opacity = '1';
+                
+                alert('Profile photo updated successfully! 📸');
+                console.log('✅ Profile photo upload complete!');
+
+            } catch (error) {
+                console.error('❌ Profile photo upload failed:', error);
+                
+                // Reset UI
+                profileDiv.innerHTML = originalContent;
+                profileDiv.style.opacity = '1';
+                
+                // Show user-friendly error message
+                let errorMsg = 'Failed to upload photo. Please try again.';
+                
+                if (error.message.includes('row-level security')) {
+                    errorMsg = 'Storage permissions not set up. Please contact admin.';
+                } else if (error.message.includes('bucket')) {
+                    errorMsg = 'Storage not configured. Please contact admin.';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMsg = 'Network error. Please check your connection and try again.';
+                }
+                
+                alert(errorMsg);
+            } finally {
+                // Reset upload button
+                uploadArea.innerHTML = originalUploadContent;
+                fileInput.value = ''; // Reset file input
+            }
+        }
+
+        // Navigation functions
+        function showDashboard() {
+            // Show earnings section and hide main cards
+            const earningsSection = document.getElementById('earnings-section');
+            const mainCards = document.getElementById('main-cards');
+            
+            if (earningsSection.classList.contains('hidden')) {
+                // Hide main navigation cards
+                mainCards.classList.add('hidden');
+                
+                // Show earnings section with animation
+                earningsSection.classList.remove('hidden');
+                earningsSection.classList.add('fade-in');
+                console.log('📊 Earnings section displayed, main cards hidden');
+                
+                // Load earnings data
+                loadEarnings();
+                
+                // Add back button to return to main view
+                addBackButton();
+            } else {
+                // If already visible, just reload the page
+                window.location.reload();
+            }
+        }
+
+        // Load earnings data
+        async function loadEarnings() {
+            try {
+                console.log('💰 Loading earnings data...');
+                
+                // Check if user exists
+                if (!currentUser || !currentUser.id) {
+                    console.warn('No current user found, using default earnings');
+                    animateCounter('today-earnings', 0);
+                    animateCounter('week-earnings', 0);
+                    animateCounter('month-earnings', 0);
+                    animateCounter('total-earnings', 0);
+                    return;
+                }
+                
+                const { data: earnings, error } = await App.fetchEarnings(currentUser.id);
+                
+                if (error) {
+                    console.log('No earnings data found, using defaults');
+                    // Still animate with 0 values
+                    animateCounter('today-earnings', 0);
+                    animateCounter('week-earnings', 0);
+                    animateCounter('month-earnings', 0);
+                    animateCounter('total-earnings', 0);
+                    return;
+                }
+                
+                // Update earnings display with animation
+                if (earnings) {
+                    console.log('Earnings data loaded:', earnings);
+                    animateCounter('today-earnings', earnings.today_earnings || 0);
+                    animateCounter('week-earnings', earnings.week_earnings || 0);
+                    animateCounter('month-earnings', earnings.month_earnings || 0);
+                    animateCounter('total-earnings', earnings.all_time_earnings || 0);
+                } else {
+                    // No earnings data, use defaults
+                    animateCounter('today-earnings', 0);
+                    animateCounter('week-earnings', 0);
+                    animateCounter('month-earnings', 0);
+                    animateCounter('total-earnings', 0);
+                }
+                
+            } catch (error) {
+                console.error('Error loading earnings:', error);
+                // Still show default values on error
+                animateCounter('today-earnings', 0);
+                animateCounter('week-earnings', 0);
+                animateCounter('month-earnings', 0);
+                animateCounter('total-earnings', 0);
+            }
+        }
+        
+        // Animate counter numbers
+        function animateCounter(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            
+            // Check if element exists
+            if (!element) {
+                console.warn(`Element with ID '${elementId}' not found`);
+                return;
+            }
+            
+            const startValue = 0;
+            const duration = 1000; // 1 second
+            const startTime = performance.now();
+            
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const currentValue = startValue + (targetValue - startValue) * progress;
+                
+                // Double check element still exists
+                if (element) {
+                    element.textContent = '₹' + Math.floor(currentValue).toFixed(0);
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                }
+            }
+            
+            requestAnimationFrame(updateCounter);
+        }
+        
+        // Add back button to return to main view
+        function addBackButton() {
+            const earningsSection = document.getElementById('earnings-section');
+            
+            // Check if back button already exists
+            if (earningsSection.querySelector('.back-button')) {
+                return;
+            }
+            
+            const backButton = document.createElement('button');
+            backButton.className = 'back-button mt-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors flex items-center';
+            backButton.innerHTML = '<i class="fas fa-arrow-left mr-2"></i>Back to Dashboard';
+            backButton.onclick = () => {
+                // Hide earnings section and show main cards
+                earningsSection.classList.add('hidden');
+                document.getElementById('main-cards').classList.remove('hidden');
+                
+                // Remove back button
+                backButton.remove();
+                
+                console.log('🔙 Returned to main dashboard view');
+            };
+            
+            earningsSection.appendChild(backButton);
+        }
+
+        function showSubmitWork() {
+            window.location.href = 'submit-report.html';
+        }
+
+        function showMyReports() {
+            window.location.href = 'my-reports.html';
+        }
+
+        function showLiveCampaigns() {
+            window.location.href = 'campaign.html';
+        }
+
+
+        async function logout() {
+            try {
+                console.log('Logging out...');
+                // Sign out from Supabase
+                const { error } = await window.App.supabase.auth.signOut();
+                
+                if (error) {
+                    console.error('Error signing out:', error);
+                    // Still redirect even if there was an error
+                }
+                
+                // Clear any stored user data
+                localStorage.removeItem('user');
+                sessionStorage.clear();
+                
+                // Redirect to login page
+                window.location.href = 'login.html';
+            } catch (err) {
+                console.error('Error during logout:', err);
+                // Still redirect even if there was an error
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Initialize on page load after all scripts are loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDashboard);
+        } else {
+            // DOMContentLoaded has already fired
+            setTimeout(initDashboard, 0);
+        }
+    </script>
+</body>
+</html>

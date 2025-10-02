@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Campaign - HATS Consulting</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+    <script src="auth-fix.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#8B5CF6',
+                        'accent': '#E11D48',
+                        'accent-hover': '#F43F5E',
+                        'light-bg': '#F8FAFC',
+                        'text-dark': '#0F172A',
+                        'text-medium': '#334155',
+                        'text-light': '#FFFFFF',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .campaign-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .campaign-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .payout-badge {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .type-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .link-button {
+            transition: all 0.2s ease;
+        }
+        
+        .link-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .campaign-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .not-available {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+        }
+        
+        .available {
+            background-color: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
+        }
+    </style>
+</head>
+<body class="font-inter bg-light-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <a href="dashboard.html" class="text-white hover:text-white/80 transition-colors">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-bullhorn text-primary text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white font-jakarta">Live Campaign</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-white text-sm">
+                        <span id="user-name">Loading...</span>
+                    </div>
+                    <button onclick="logout()" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-hover transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Header Section -->
+        <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-text-dark mb-4 font-jakarta">
+                Available <span class="text-primary">Campaigns</span>
+            </h2>
+            <p class="text-lg text-text-medium max-w-2xl mx-auto">
+                Choose from our active campaigns and start earning rewards today!
+            </p>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex justify-center mb-8">
+            <div class="bg-white rounded-full p-1 shadow-lg">
+                <button onclick="filterCampaigns('all')" id="filter-all" class="px-6 py-2 rounded-full font-medium transition-all bg-primary text-white">
+                    All Campaigns
+                </button>
+                
+            </div>
+        </div>
+
+        <!-- Campaigns Grid -->
+        <div id="campaigns-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Loading state -->
+            <div id="loading-state" class="col-span-full text-center py-16">
+                <i class="fas fa-spinner fa-spin text-4xl text-primary mb-4"></i>
+                <p class="text-text-medium text-lg">Loading campaigns...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentUser = null;
+        let campaigns = [];
+
+        // Initialize page
+        async function initPage() {
+            try {
+                currentUser = await AuthHelper.initPage(false);
+                if (!currentUser) return;
+                
+                // Update user name in header
+                document.getElementById('user-name').textContent = currentUser.email;
+                
+                // Load campaigns
+                await loadCampaigns();
+                
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                await AuthHelper.logout();
+            }
+        }
+
+        // Load campaigns
+        async function loadCampaigns() {
+            try {
+                const { data, error } = await window.App.supabase
+                    .from('campaigns')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('id', { ascending: false });
+                
+                if (error) throw error;
+                
+                campaigns = data || [];
+                displayCampaigns(campaigns);
+                
+            } catch (error) {
+                console.error('Error loading campaigns:', error);
+                document.getElementById('campaigns-container').innerHTML = `
+                    <div class="col-span-full text-center py-16">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <div class="text-xl font-semibold text-red-600 mb-2">Error loading campaigns</div>
+                        <p class="text-gray-600">Please refresh the page or try again later.</p>
+                        <button onclick="loadCampaigns()" class="mt-4 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/80 transition-colors">
+                            <i class="fas fa-refresh mr-2"></i>Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display campaigns
+        function displayCampaigns(campaignsToShow = campaigns) {
+            const container = document.getElementById('campaigns-container');
+            
+            if (campaignsToShow.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16">
+                        <i class="fas fa-bullhorn text-4xl text-gray-400 mb-4"></i>
+                        <div class="text-xl font-semibold text-gray-600 mb-2">No campaigns available</div>
+                        <p class="text-gray-500">Check back later for new opportunities!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const campaignsHtml = campaignsToShow.map(campaign => createCampaignCard(campaign)).join('');
+            container.innerHTML = campaignsHtml;
+        }
+        
+        // Create campaign card
+        function createCampaignCard(campaign) {
+            const typeColor = campaign.type === 'trade' ? 'bg-orange-100 text-orange-800' : 
+                             campaign.type === 'account_open' ? 'bg-purple-100 text-purple-800' : 
+                             'bg-blue-100 text-blue-800';
+            
+            const typeText = campaign.type === 'trade' ? 'Trade Report' : 
+                            campaign.type === 'account_open' ? 'Account Opening' : 
+                            'Both Types';
+            
+            return `
+                <div class="campaign-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
+                    <!-- Campaign Header -->
+                    <div class="relative">
+                        ${(campaign.image_url && campaign.image_url.trim()) ? 
+                            `<img src="${campaign.image_url}" alt="${campaign.name || 'Campaign'}" class="w-full h-48 object-cover">` :
+                            `<div class="w-full h-48 bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
+                                <i class="fas fa-bullhorn text-white text-4xl"></i>
+                            </div>`
+                        }
+                        <div class="absolute top-4 right-4">
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full ${typeColor}">
+                                ${typeText}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Campaign Content -->
+                    <div class="p-6">
+                        <!-- Campaign Name -->
+                        <h3 class="text-xl font-bold text-white mb-3 font-jakarta">${campaign.name}</h3>
+                        
+                        <!-- Description -->
+                       
+                        
+                        <!-- Payout Information -->
+                        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Payout Structure</span>
+                                <i class="fas fa-coins text-yellow-500"></i>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-green-600">₹${(campaign.reward_amount || 0).toFixed(0)}</div>
+                                    <div class="text-xs text-gray-500">With Trade</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-blue-600">₹${(campaign.reward_amount ? (campaign.reward_amount * 0.7).toFixed(0) : 0)}</div>
+                                    <div class="text-xs text-gray-500">Without Trade</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Links -->
+                        <div class="space-y-2 mb-4">
+                            <!-- Account Open Link -->
+                            <div class="flex gap-2">
+                                <a href="#" onclick="openAccountLink('${campaign.name}')" class="link-button flex-1 bg-red-500 hover:bg-red-600 text-white text-center py-2 px-4 rounded-lg transition-all">
+                                    <i class="fas fa-video mr-2"></i>Open Account Video
+                                </a>
+                                <button onclick="copyAccountLink('${campaign.name}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-all" title="Copy Account Link">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Trade Video Link -->
+                            <div class="flex gap-2">
+                                <a href="#" onclick="openTradeVideo('${campaign.name}')" class="link-button flex-1 bg-red-500 hover:bg-red-600 text-white text-center py-2 px-4 rounded-lg transition-all">
+                                    <i class="fas fa-video mr-2"></i>Watch Trade Video
+                                </a>
+                                <button onclick="copyTradeLink('${campaign.name}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-all" title="Copy Trade Link">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Referral Link -->
+                            <div class="flex gap-2">
+                                <a href="#" onclick="openReferralLink('${campaign.name}')" class="link-button flex-1 bg-green-500 hover:bg-green-600 text-white text-center py-2 px-4 rounded-lg transition-all">
+                                    <i class="fas fa-link mr-2"></i>Referral Link
+                                </a>
+                                <button onclick="copyReferralLink('${campaign.name}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-all" title="Copy Referral Link">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="space-y-2">
+                            <!-- View Details Button -->
+                            <button onclick="viewCampaignDetails('${campaign.name}')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all">
+                                <i class="fas fa-eye mr-2"></i>View Details
+                            </button>
+                            
+                            
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Filter campaigns
+        function filterCampaigns(type) {
+            // Update active tab
+            document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+                btn.className = 'px-6 py-2 rounded-full font-medium transition-all text-gray-600 hover:text-primary';
+            });
+            document.getElementById(`filter-${type}`).className = 'px-6 py-2 rounded-full font-medium transition-all bg-primary text-white';
+            
+            // Filter campaigns
+            let filteredCampaigns = campaigns;
+            if (type !== 'all') {
+                filteredCampaigns = campaigns.filter(campaign => campaign.type === type);
+            }
+            
+            displayCampaigns(filteredCampaigns);
+        }
+        
+        // Handle link clicks
+        function openAccountLink(campaignName) {
+            // Find the campaign and open its account link
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const link = campaign.account_open_url || campaign.account_open_link;
+                if (link && link !== '') {
+                    window.open(link, '_blank');
+                } else {
+                    // Demo link for testing
+                    window.open('https://example.com/account-open', '_blank');
+                    showNotification('Demo: Account opening link opened', 'info');
+                }
+            }
+        }
+        
+        function openTradeVideo(campaignName) {
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const link = campaign.trade_video_url || campaign.trade_video_link;
+                if (link && link !== '') {
+                    window.open(link, '_blank');
+                } else {
+                    // Demo link for testing
+                    window.open('https://youtube.com/watch?v=demo', '_blank');
+                    showNotification('Demo: Trade video opened', 'info');
+                }
+            }
+        }
+        
+        function openReferralLink(campaignName) {
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const link = campaign.referral_url || campaign.referral_link;
+                if (link && link !== '') {
+                    window.open(link, '_blank');
+                } else {
+                    // Demo link for testing
+                    window.open('https://example.com/referral', '_blank');
+                    showNotification('Demo: Referral link opened', 'info');
+                }
+            }
+        }
+        
+        // Copy link functions
+        function copyAccountLink(campaignName) {
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const link = campaign.account_open_url || campaign.account_open_link || 'https://example.com/account-open';
+                copyToClipboard(link, 'Account opening link copied to clipboard!');
+            }
+        }
+        
+        function copyTradeLink(campaignName) {
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const link = campaign.trade_video_url || campaign.trade_video_link || 'https://youtube.com/watch?v=demo';
+                copyToClipboard(link, 'Trade video link copied to clipboard!');
+            }
+        }
+        
+        function copyReferralLink(campaignName) {
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const link = campaign.referral_url || campaign.referral_link || 'https://example.com/referral';
+                copyToClipboard(link, 'Referral link copied to clipboard!');
+            }
+        }
+        
+        // Copy to clipboard helper
+        function copyToClipboard(text, successMessage) {
+            if (navigator.clipboard && window.isSecureContext) {
+                // Use modern clipboard API
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification(successMessage, 'success');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    fallbackCopyTextToClipboard(text, successMessage);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopyTextToClipboard(text, successMessage);
+            }
+        }
+        
+        // Fallback copy method
+        function fallbackCopyTextToClipboard(text, successMessage) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showNotification(successMessage, 'success');
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                showNotification('Failed to copy link', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // View campaign details
+        function viewCampaignDetails(campaignName) {
+            const campaign = campaigns.find(c => c.name === campaignName);
+            if (campaign) {
+                const detailsHtml = `
+                    <div class="bg-white p-6 rounded-lg max-w-md mx-auto">
+                        <h3 class="text-xl font-bold mb-4 text-center">${campaign.name}</h3>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <strong>Type:</strong> ${campaign.type === 'trade' ? 'Trade Report' : campaign.type === 'account_open' ? 'Account Opening' : 'Both Types'}
+                            </div>
+                            
+                            <div>
+                                <strong>Reward:</strong> ₹${(campaign.reward_amount || 0).toFixed(0)}
+                            </div>
+                            
+                            ${campaign.description ? `
+                                <div>
+                                    <strong>Description:</strong><br>
+                                    <p class="text-gray-600 mt-1">${campaign.description}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="pt-3 border-t">
+                                <strong>Available Links:</strong>
+                                <div class="mt-2 space-y-1">
+                                    <div class="flex items-center text-sm">
+                                        <i class="fas fa-user-plus text-blue-500 w-4 mr-2"></i>
+                                        Account Opening: ${(campaign.account_open_url || campaign.account_open_link) ? 'Available' : 'Not Available'}
+                                    </div>
+                                    <div class="flex items-center text-sm">
+                                        <i class="fas fa-video text-red-500 w-4 mr-2"></i>
+                                        Trade Video: ${(campaign.trade_video_url || campaign.trade_video_link) ? 'Available' : 'Not Available'}
+                                    </div>
+                                    <div class="flex items-center text-sm">
+                                        <i class="fas fa-link text-green-500 w-4 mr-2"></i>
+                                        Referral Link: ${(campaign.referral_url || campaign.referral_link) ? 'Available' : 'Not Available'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="closeDetailsModal()" class="w-full mt-4 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">
+                            Close
+                        </button>
+                    </div>
+                `;
+                
+                // Create modal
+                const modal = document.createElement('div');
+                modal.id = 'campaign-details-modal';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = detailsHtml;
+                
+                document.body.appendChild(modal);
+            }
+        }
+        
+        // Close details modal
+        function closeDetailsModal() {
+            const modal = document.getElementById('campaign-details-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Go to submit report page
+        function goToSubmitReport(campaignName) {
+            window.location.href = `submit-report.html?campaign=${encodeURIComponent(campaignName)}`;
+        }
+        
+        // Logout function
+        async function logout() {
+            await AuthHelper.logout();
+        }
+        
+        // Initialize page on load
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

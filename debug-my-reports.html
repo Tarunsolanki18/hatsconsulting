@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug My Reports</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <h1>My Reports Debug Tool</h1>
+    
+    <div class="debug-box loading">
+        <h3>🔍 Debugging My Reports Issues</h3>
+        <p>Testing all components step by step...</p>
+    </div>
+    
+    <div id="results"></div>
+    
+    <button class="btn-primary" onclick="runFullTest()">Run Full Test</button>
+    <button class="btn-primary" onclick="testAuth()">Test Auth Only</button>
+    <button class="btn-primary" onclick="testDatabase()">Test Database Only</button>
+    
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+    <script src="auth-fix.js"></script>
+    
+    <script>
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `debug-box ${type}`;
+            div.innerHTML = `<h3>${title}</h3><div>${content}</div>`;
+            results.appendChild(div);
+        }
+        
+        function addLog(message) {
+            console.log(message);
+            addResult('📋 Log', `<pre>${message}</pre>`, 'info');
+        }
+        
+        async function testAuth() {
+            addLog('🔐 Testing authentication...');
+            
+            try {
+                // Test 1: Check if AuthHelper exists
+                if (typeof AuthHelper === 'undefined') {
+                    addResult('❌ AuthHelper Missing', 'AuthHelper is not defined. Check auth-fix.js loading.', 'error');
+                    return null;
+                }
+                
+                addResult('✅ AuthHelper Found', 'AuthHelper is loaded correctly', 'success');
+                
+                // Test 2: Initialize auth
+                const user = await AuthHelper.initPage(false);
+                
+                if (!user) {
+                    addResult('❌ No User', 'User is not logged in', 'error');
+                    return null;
+                }
+                
+                addResult('✅ User Authenticated', `<pre>${JSON.stringify(user, null, 2)}</pre>`, 'success');
+                return user;
+                
+            } catch (error) {
+                addResult('❌ Auth Error', `<pre>${error.message}\n\nStack:\n${error.stack}</pre>`, 'error');
+                return null;
+            }
+        }
+        
+        async function testDatabase() {
+            addLog('🗄️ Testing database connection...');
+            
+            try {
+                // Test 1: Check if App exists
+                if (typeof App === 'undefined') {
+                    addResult('❌ App Missing', 'App is not defined. Check app.js loading.', 'error');
+                    return false;
+                }
+                
+                if (!App.supabase) {
+                    addResult('❌ Supabase Missing', 'App.supabase is not initialized', 'error');
+                    return false;
+                }
+                
+                addResult('✅ App & Supabase Found', 'App and Supabase are loaded correctly', 'success');
+                
+                // Test 2: Simple database query
+                const { data, error, count } = await App.supabase
+                    .from('profiles')
+                    .select('id', { count: 'exact', head: true });
+                
+                if (error) {
+                    addResult('❌ Database Error', `<pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                    return false;
+                }
+                
+                addResult('✅ Database Connected', `Found ${count} profiles in database`, 'success');
+                return true;
+                
+            } catch (error) {
+                addResult('❌ Database Test Error', `<pre>${error.message}\n\nStack:\n${error.stack}</pre>`, 'error');
+                return false;
+            }
+        }
+        
+        async function testReports(user) {
+            addLog(`📊 Testing reports for user: ${user.id}...`);
+            
+            try {
+                // Test 1: Fetch user's reports
+                const { data: reports, error } = await App.supabase
+                    .from('reports')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    addResult('❌ Reports Query Error', `<pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                    return [];
+                }
+                
+                addResult('✅ Reports Loaded', `Found ${reports?.length || 0} reports for this user`, 'success');
+                
+                if (reports && reports.length > 0) {
+                    addResult('📋 Reports Data', `<pre>${JSON.stringify(reports, null, 2)}</pre>`, 'info');
+                } else {
+                    addResult('ℹ️ No Reports', 'This user has no reports yet. Try submitting a report first.', 'info');
+                }
+                
+                return reports || [];
+                
+            } catch (error) {
+                addResult('❌ Reports Test Error', `<pre>${error.message}\n\nStack:\n${error.stack}</pre>`, 'error');
+                return [];
+            }
+        }
+        
+        async function testCampaigns() {
+            addLog('🎯 Testing campaigns...');
+            
+            try {
+                const { data: campaigns, error } = await App.supabase
+                    .from('campaigns')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    addResult('❌ Campaigns Query Error', `<pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                    return [];
+                }
+                
+                addResult('✅ Campaigns Loaded', `Found ${campaigns?.length || 0} campaigns`, 'success');
+                
+                if (campaigns && campaigns.length > 0) {
+                    addResult('📋 Campaigns Data', `<pre>${JSON.stringify(campaigns.slice(0, 3), null, 2)}</pre>`, 'info');
+                } else {
+                    addResult('ℹ️ No Campaigns', 'No campaigns found. Admin needs to create campaigns first.', 'info');
+                }
+                
+                return campaigns || [];
+                
+            } catch (error) {
+                addResult('❌ Campaigns Test Error', `<pre>${error.message}\n\nStack:\n\nStack:\n${error.stack}</pre>`, 'error');
+                return [];
+            }
+        }
+        
+        async function runFullTest() {
+            // Clear previous results
+            document.getElementById('results').innerHTML = '';
+            
+            addLog('🚀 Starting full test...');
+            
+            // Test 1: Authentication
+            const user = await testAuth();
+            if (!user) {
+                addResult('❌ Test Failed', 'Cannot proceed without authentication. Please login first.', 'error');
+                return;
+            }
+            
+            // Test 2: Database
+            const dbConnected = await testDatabase();
+            if (!dbConnected) {
+                addResult('❌ Test Failed', 'Cannot proceed without database connection.', 'error');
+                return;
+            }
+            
+            // Test 3: Reports
+            const reports = await testReports(user);
+            
+            // Test 4: Campaigns
+            const campaigns = await testCampaigns();
+            
+            // Final summary
+            addResult('✅ Test Complete', `
+                <strong>Summary:</strong><br>
+                • User: ${user.email}<br>
+                • Reports: ${reports.length}<br>
+                • Campaigns: ${campaigns.length}<br>
+                • Status: ${reports.length > 0 ? 'Ready to use' : 'Need to submit reports'}
+            `, 'success');
+            
+            if (reports.length === 0) {
+                addResult('💡 Next Steps', `
+                    Since you have no reports yet:<br>
+                    1. <a href="submit-report.html" target="_blank">Submit your first report</a><br>
+                    2. Then come back to <a href="my-reports.html" target="_blank">My Reports</a>
+                `, 'info');
+            } else {
+                addResult('💡 Next Steps', `
+                    Your reports are ready! You can now:<br>
+                    1. <a href="my-reports.html" target="_blank">View My Reports page</a><br>
+                    2. Check console for any JavaScript errors
+                `, 'info');
+            }
+        }
+        
+        // Auto-run test on load
+        setTimeout(() => {
+            runFullTest();
+        }, 1000);
+    </script>
+</body>
+</html>

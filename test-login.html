@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test - HATS Consulting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-center mb-6">Quick Login Test</h1>
+        
+        <div class="space-y-4">
+            <!-- Admin Login Test -->
+            <div class="p-4 border rounded-lg">
+                <h2 class="font-semibold text-lg mb-2">👑 Admin Login Test</h2>
+                <p class="text-sm text-gray-600 mb-2">Email: HATSCONSULTING1@GMAIL.COM</p>
+                <p class="text-sm text-gray-600 mb-3">Security Code: Not required</p>
+                <a href="login.html" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 inline-block">Test Admin Login</a>
+            </div>
+            
+            <!-- Regular User Login Test -->
+            <div class="p-4 border rounded-lg">
+                <h2 class="font-semibold text-lg mb-2">👤 Regular User Login Test</h2>
+                <p class="text-sm text-gray-600 mb-2">Use your registered email</p>
+                <p class="text-sm text-gray-600 mb-3">Security Code: HATS@2025</p>
+                <a href="login.html" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 inline-block">Test User Login</a>
+            </div>
+            
+            <!-- Debug Tools -->
+            <div class="p-4 border rounded-lg">
+                <h2 class="font-semibold text-lg mb-2">🔧 Debug Tools</h2>
+                <div class="space-y-2">
+                    <a href="login-debug.html" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 inline-block w-full text-center">Debug Panel</a>
+                    <a href="database-test.html" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 inline-block w-full text-center">Database Test</a>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="p-4 border rounded-lg">
+                <h2 class="font-semibold text-lg mb-2">⚡ Quick Actions</h2>
+                <div class="space-y-2">
+                    <button onclick="clearStorage()" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 w-full">Clear Browser Data</button>
+                    <button onclick="testConnection()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 w-full">Test Connection</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Display -->
+        <div id="status" class="mt-4 p-3 rounded-lg hidden"></div>
+        
+        <!-- Navigation -->
+        <div class="mt-6 text-center">
+            <a href="index.html" class="text-blue-500 hover:text-blue-700">← Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                showStatus('✅ Browser data cleared successfully!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } catch (error) {
+                showStatus('❌ Failed to clear data: ' + error.message, 'error');
+            }
+        }
+        
+        async function testConnection() {
+            showStatus('🔄 Testing connection...', 'info');
+            
+            try {
+                // Test if we can reach the config file
+                const response = await fetch('./assets/config.js');
+                if (!response.ok) {
+                    throw new Error('Config file not accessible');
+                }
+                
+                showStatus('✅ Connection test successful!', 'success');
+            } catch (error) {
+                showStatus('❌ Connection test failed: ' + error.message, 'error');
+            }
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = `mt-4 p-3 rounded-lg ${
+                type === 'success' ? 'bg-green-100 text-green-800' :
+                type === 'error' ? 'bg-red-100 text-red-800' :
+                'bg-blue-100 text-blue-800'
+            }`;
+            status.textContent = message;
+            status.classList.remove('hidden');
+            
+            if (type !== 'info') {
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 5000);
+            }
+        }
+        
+        // Show current browser info
+        document.addEventListener('DOMContentLoaded', function() {
+            const browserInfo = `Browser: ${navigator.userAgent.split(' ').pop()} | JavaScript: Enabled`;
+            console.log('Browser Info:', browserInfo);
+        });
+    </script>
+</body>
+</html>

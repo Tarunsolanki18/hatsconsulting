@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Reports - HATS Consulting</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+    <script src="auth-fix.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#8B5CF6',
+                        'accent': '#E11D48',
+                        'accent-hover': '#F43F5E',
+                        'light-bg': '#F8FAFC',
+                        'text-dark': '#0F172A',
+                        'text-medium': '#334155',
+                        'text-light': '#FFFFFF',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            min-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-light-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <button onclick="goBack()" class="text-white hover:text-purple-200 transition-colors">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-alt text-primary text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white font-jakarta">Check Reports</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshReports()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                    <button onclick="logout()" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-hover transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-text-medium">Loading reports...</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
+                </div>
+                <div class="text-3xl font-bold text-text-dark" id="total-reports">0</div>
+                <div class="text-text-medium">Total Reports</div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                </div>
+                <div class="text-3xl font-bold text-text-dark" id="approved-reports">0</div>
+                <div class="text-text-medium">Account Open Reports</div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
+                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-clock text-yellow-600 text-2xl"></i>
+                </div>
+                <div class="text-3xl font-bold text-text-dark" id="pending-reports">0</div>
+                <div class="text-text-medium">Pending Reports</div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button onclick="filterReports('all')" id="filter-all" class="filter-btn bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-list mr-2"></i>All Reports
+                </button>
+                <button onclick="filterReports('trade')" id="filter-trade" class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-chart-line mr-2"></i>Trade Reports
+                </button>
+                <button onclick="filterReports('account_open')" id="filter-account" class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-user-plus mr-2"></i>Account Open Reports
+                </button>
+            </div>
+            
+            <!-- Advanced Filter Options -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-semibold text-text-dark mb-4">
+                    <i class="fas fa-filter text-primary mr-2"></i>Advanced Filters
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    
+                    <!-- Campaign Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-text-medium mb-2">Campaign</label>
+                        <select id="campaignFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">All Campaigns</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-text-medium mb-2">Status</label>
+                        <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="account open">Account Open</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="not_found">Not Found</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="trade done">Trade Done</option>
+                            <option value="trade not done">Trade Not Done</option>
+                        </select>
+                    </div>
+
+                    <!-- Payment Status Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-text-medium mb-2">Payment Status</label>
+                        <select id="paymentFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">All Payment</option>
+                            <option value="paid">Paid</option>
+                            <option value="not_paid">Not Paid</option>
+                            <option value="partial">Partial Paid</option>
+                        </select>
+                    </div>
+
+                    <!-- Single Date Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-text-medium mb-2">Submission Date</label>
+                        <input type="date" id="submissionDateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" title="Select specific date">
+                    </div>
+                    
+                    <!-- Date Range Toggle Button -->
+                    <div>
+                        <label class="block text-sm font-medium text-text-medium mb-2">Date Range</label>
+                        <button type="button" onclick="toggleDateRangeFilter()" class="w-full bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-calendar-range mr-2"></i>Range Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Range Filter Panel (Hidden by default) -->
+                <div id="dateRangePanel" class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-md font-semibold text-text-dark">
+                            <i class="fas fa-calendar-alt mr-2 text-purple-600"></i>
+                            Advanced Date Range Filter
+                        </h4>
+                        <button onclick="closeDateRangeFilter()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Date Range Inputs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                            <input type="date" id="fromDateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                            <input type="date" id="toDateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+
+                    <!-- Quick Date Presets -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quick Filters</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                            <button onclick="setDatePreset('today')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-calendar-day mr-1"></i>Today
+                            </button>
+                            <button onclick="setDatePreset('yesterday')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-calendar-minus mr-1"></i>Yesterday
+                            </button>
+                            <button onclick="setDatePreset('thisWeek')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-calendar-week mr-1"></i>This Week
+                            </button>
+                            <button onclick="setDatePreset('lastWeek')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-calendar mr-1"></i>Last Week
+                            </button>
+                            <button onclick="setDatePreset('thisMonth')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-calendar-alt mr-1"></i>This Month
+                            </button>
+                            <button onclick="setDatePreset('lastMonth')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-history mr-1"></i>Last Month
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Info and Actions -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm text-blue-800 font-medium mb-1">
+                                    <span id="dateRangeInfo">No date range selected</span>
+                                </p>
+                                <p class="text-xs text-blue-600">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Leave "To Date" empty to filter from "From Date" onwards
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button onclick="applyDateRangeFilter()" class="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-filter mr-2"></i>Apply Date Range
+                        </button>
+                        <button onclick="clearDateRangeFilter()" class="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-times mr-2"></i>Clear Range
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Apply Filter Button -->
+                <div class="mt-4 flex justify-between">
+                    <button onclick="clearAllFilters()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        <i class="fas fa-times mr-2"></i>Clear All Filters
+                    </button>
+                    <button onclick="applyAdvancedFilters()" class="px-6 py-2 bg-primary hover:bg-purple-600 text-white rounded-lg transition-colors font-medium">
+                        <i class="fas fa-filter mr-2"></i>Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports List -->
+        <div id="reports-container" class="space-y-6">
+            <!-- Reports will be loaded here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="text-center py-12 hidden">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-file-alt text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-text-dark mb-2">No Reports Found</h3>
+            <p class="text-text-medium mb-6">You haven't submitted any reports yet.</p>
+            <button onclick="window.location.href='submit-report.html'" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors">
+                <i class="fas fa-plus mr-2"></i>Submit Your First Report
+            </button>
+        </div>
+    </main>
+
+    <!-- Report Details Modal -->
+    <div id="report-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-text-dark font-jakarta">Report Details</h2>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="modal-content">
+                    <!-- Modal content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let allReports = [];
+        let filteredReports = [];
+        let currentFilter = 'all';
+        let monitoringInterval = null;
+
+        // Initialize page
+        async function initPage() {
+            try {
+                console.log('Initializing Check Reports page...');
+                
+                // Check authentication
+                const session = await App.getSession();
+                if (!session) {
+                    console.log('No session found, redirecting to login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // Set current user from session
+                currentUser = session.user;
+                console.log('Current user:', currentUser.email);
+                
+                // Update user's last activity
+                await App.supabase
+                    .from('profiles')
+                    .update({ updated_at: new Date().toISOString() })
+                    .eq('id', currentUser.id);
+                
+                // Load reports
+                await loadReports();
+                
+                // Start monitoring only if reports loaded successfully
+                if (allReports.length >= 0) {
+                    console.log('Starting real-time monitoring...');
+                    startRealtimeMonitoring();
+                }
+                
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                document.getElementById('loading-indicator').style.display = 'none';
+                showNotification('Error loading page. Please refresh.', 'error');
+            }
+        }
+
+        // Load user reports
+        async function loadReports() {
+            try {
+                console.log('🔄 Loading reports for user:', currentUser.id);
+                showNotification('🔄 Loading your reports...', 'info');
+                
+                // Test basic table access first
+                console.log('🔍 Testing reports table access...');
+                const { data: testData, error: testError } = await App.supabase
+                    .from('reports')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (testError) {
+                    console.error('❌ Reports table not accessible:', testError);
+                    showNotification('❌ Database connection failed: ' + testError.message, 'error');
+                    throw new Error('Reports table not accessible: ' + testError.message);
+                }
+                
+                console.log('✅ Reports table accessible, total reports:', testData);
+                showNotification('✅ Database connected successfully', 'success');
+                
+                // Test what fields are available by trying a simple query
+                console.log('Testing available fields...');
+                const { data: sampleData, error: sampleError } = await App.supabase
+                    .from('reports')
+                    .select('*')
+                    .limit(1);
+                
+                if (sampleData && sampleData.length > 0) {
+                    console.log('Available fields in reports table:', Object.keys(sampleData[0]));
+                    
+                    // Check if admin_notes field exists
+                    if (sampleData[0].hasOwnProperty('admin_notes')) {
+                        console.log('✅ admin_notes field EXISTS in database');
+                    } else {
+                        console.log('❌ admin_notes field MISSING from database schema');
+                        console.log('🔧 Need to add admin_notes column to reports table');
+                    }
+                } else {
+                    console.log('No sample data available, but table exists');
+                }
+                
+                // Test admin_notes field specifically
+                console.log('🔍 Testing admin_notes field access...');
+                const { data: adminNotesTest, error: adminNotesError } = await App.supabase
+                    .from('reports')
+                    .select('id, admin_notes')
+                    .limit(1);
+                
+                if (adminNotesError) {
+                    console.error('❌ Cannot access admin_notes field:', adminNotesError.message);
+                    console.log('💡 This means admin_notes column does not exist in database');
+                    
+                    // Show user-friendly error message
+                    showNotification('Database Schema Issue: admin_notes column missing. Please contact admin to add this column.', 'error');
+                    
+                    // Try to add the column (this might fail due to permissions)
+                    console.log('🔧 Attempting to add admin_notes column...');
+                    try {
+                        const { error: alterError } = await App.supabase.rpc('add_admin_notes_column');
+                        if (alterError) {
+                            console.log('❌ Cannot add column automatically:', alterError.message);
+                            console.log('📋 Manual SQL needed: ALTER TABLE reports ADD COLUMN admin_notes TEXT;');
+                        }
+                    } catch (rpcError) {
+                        console.log('❌ RPC function not available for adding column');
+                        console.log('📋 Manual SQL needed: ALTER TABLE reports ADD COLUMN admin_notes TEXT;');
+                    }
+                } else {
+                    console.log('✅ admin_notes field accessible:', adminNotesTest);
+                }
+                
+                // Load reports without campaigns join (since relationship doesn't exist)
+                console.log('📥 Loading user reports...');
+                showNotification('📥 Fetching your reports from database...', 'info');
+                
+                const { data: reports, error } = await App.supabase
+                    .from('reports')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error loading reports:', error);
+                    showNotification('❌ Failed to load reports: ' + error.message, 'error');
+                    throw error;
+                }
+
+                allReports = reports || [];
+                console.log('✅ Loaded reports:', allReports.length);
+                
+                if (allReports.length === 0) {
+                    showNotification('📋 No reports found. Submit your first report!', 'info');
+                } else {
+                    showNotification(`✅ Found ${allReports.length} reports!`, 'success');
+                    console.log('Sample report data:', allReports[0]);
+                }
+                
+                // Debug admin notes specifically
+                if (allReports.length > 0) {
+                    console.log('🔍 CHECKING ADMIN NOTES FROM DATABASE:');
+                    let hasAnyAdminNotes = false;
+                    
+                    allReports.forEach((report, index) => {
+                        const hasNotes = report.admin_notes && report.admin_notes.trim();
+                        if (hasNotes) {
+                            hasAnyAdminNotes = true;
+                            console.log(`✅ Report ${index + 1} HAS admin notes:`, {
+                                id: report.id,
+                                admin_notes: report.admin_notes,
+                                length: report.admin_notes.length
+                            });
+                        } else {
+                            console.log(`❌ Report ${index + 1} NO admin notes:`, {
+                                id: report.id,
+                                admin_notes: report.admin_notes,
+                                type: typeof report.admin_notes
+                            });
+                        }
+                    });
+                    
+                    if (!hasAnyAdminNotes) {
+                        console.log('⚠️ NO ADMIN NOTES FOUND IN ANY REPORTS');
+                        console.log('💡 To add real admin notes:');
+                        console.log('1. Go to admin panel (admin.html)');
+                        console.log('2. Find a report and click green "Notes" button');
+                        console.log('3. Add admin notes and save');
+                        console.log('4. Refresh this page to see admin notes');
+                    } else {
+                        console.log('✅ Admin notes found! They should display in blue boxes.');
+                    }
+                } else {
+                    console.log('❌ No reports found to check for admin notes');
+                }
+                
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                showNotification('🎯 Updating statistics and displaying reports...', 'info');
+                
+                updateStatistics();
+                filterReports(currentFilter);
+                
+                showNotification('✅ Reports page loaded successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                document.getElementById('loading-indicator').style.display = 'none';
+                showNotification('Error loading reports: ' + error.message, 'error');
+                
+                // Show empty state if no reports could be loaded
+                document.getElementById('empty-state').classList.remove('hidden');
+            }
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const total = allReports.length;
+            // Count account open and trade done as successful completions
+            const accountOpen = allReports.filter(r => 
+                r.status === 'account open' || 
+                r.status === 'trade done' || 
+                r.status === 'approved' || 
+                r.status === 'account_opened'
+            ).length;
+            const pending = allReports.filter(r => r.status === 'pending').length;
+
+            document.getElementById('total-reports').textContent = total;
+            document.getElementById('approved-reports').textContent = accountOpen;
+            document.getElementById('pending-reports').textContent = pending;
+        }
+
+        // Filter reports - Updated to use advanced filtering system
+        function filterReports(type) {
+            console.log('🔄 Switching to report type filter:', type);
+            currentFilter = type;
+            
+            // Update filter buttons
+            updateFilterButtons();
+            
+            // Apply all advanced filters with new report type
+            applyAdvancedFilters();
+        }
+
+        // Display reports
+        function displayReports(reportsToShow = null) {
+            const reportsData = reportsToShow || filteredReports;
+            console.log('🎨 Displaying reports...', reportsData.length);
+            const container = document.getElementById('reports-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (reportsData.length === 0) {
+                console.log('📋 No filtered reports to display, showing empty state');
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                showNotification('📋 No reports match current filters', 'info');
+                return;
+            }
+
+            console.log('✅ Displaying', reportsData.length, 'reports');
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = reportsData.map(report => `
+                <div class="bg-white rounded-2xl shadow-lg p-6 card-hover cursor-pointer" onclick="viewReport('${report.id}')">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <div class="w-12 h-12 ${getReportTypeColor(report.report_type)} rounded-lg flex items-center justify-center">
+                                    <i class="fas ${getReportTypeIcon(report.report_type)} text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-text-dark">${getReportTypeLabel(report.report_type)}</h3>
+                                    <p class="text-text-medium text-sm">${report.application_name || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-text-medium">Customer:</span>
+                                    <span class="font-medium text-text-dark">${report.customer_name || 'N/A'}</span>
+                                </div>
+                                <div>
+                                    <span class="text-text-medium">Mobile:</span>
+                                    <span class="font-medium text-text-dark">${report.mobile_number || 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-text-medium mb-2">${formatDate(report.created_at)}</div>
+                            <div class="space-y-2">
+                                <!-- Status Badge -->
+                                <div class="flex items-center justify-end space-x-2">
+                                    <i class="fas ${getStatusIcon(report.status)} ${getStatusIconColor(report.status)}"></i>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(report.status)}">
+                                        ${getStatusLabel(report.status)}
+                                    </span>
+                                </div>
+                                <div class="text-xs text-text-medium text-right">${getStatusMessage(report.status)}</div>
+                                
+                                <!-- Payment Status Badge -->
+                                ${report.payment_status ? `
+                                <div class="flex items-center justify-end space-x-2 mt-2">
+                                    <i class="fas ${getPaymentIcon(report.payment_status)} ${getPaymentIconColor(report.payment_status)}"></i>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${getPaymentColor(report.payment_status)}">
+                                        ${getPaymentLabel(report.payment_status)}
+                                    </span>
+                                </div>
+                                <div class="text-xs text-text-medium text-right">${getPaymentMessage(report.payment_status)}</div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Admin Notes Display -->
+                    ${report.admin_notes && report.admin_notes.trim() ? `
+                        <div class="mt-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                            <div class="flex items-center space-x-2 mb-3">
+                                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user-shield text-white text-sm"></i>
+                                </div>
+                                <span class="font-bold text-blue-800 text-lg">Admin ka message:</span>
+                            </div>
+                            <div class="bg-white p-3 rounded border-l-4 border-blue-500">
+                                <p class="text-gray-800 leading-relaxed font-medium">${report.admin_notes}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Helper functions for status display
+        function getStatusIcon(status) {
+            switch(status?.toLowerCase()) {
+                case 'account open': return 'fa-check-circle';
+                case 'trade done': return 'fa-check-circle';
+                case 'rejected': return 'fa-times-circle';
+                case 'trade not done': return 'fa-times-circle';
+                case 'not found': return 'fa-exclamation-triangle';
+                case 'under review': return 'fa-search';
+                case 'pending':
+                default: return 'fa-clock';
+            }
+        }
+
+        function getStatusIconColor(status) {
+            switch(status?.toLowerCase()) {
+                case 'account open': return 'text-green-600';
+                case 'trade done': return 'text-green-600';
+                case 'rejected': return 'text-red-600';
+                case 'trade not done': return 'text-red-600';
+                case 'not found': return 'text-red-600';
+                case 'under review': return 'text-blue-600';
+                case 'pending':
+                default: return 'text-yellow-600';
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status?.toLowerCase()) {
+                case 'account open': return 'bg-green-100 text-green-800 border border-green-200';
+                case 'trade done': return 'bg-green-100 text-green-800 border border-green-200';
+                case 'rejected': return 'bg-red-100 text-red-800 border border-red-200';
+                case 'trade not done': return 'bg-red-100 text-red-800 border border-red-200';
+                case 'not found': return 'bg-red-100 text-red-800 border border-red-200';
+                case 'under review': return 'bg-blue-100 text-blue-800 border border-blue-200';
+                case 'pending':
+                default: return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+            }
+        }
+
+        function getStatusLabel(status) {
+            switch(status?.toLowerCase()) {
+                case 'account open': return '✅ ACCOUNT OPEN';
+                case 'trade done': return '✅ TRADE DONE';
+                case 'rejected': return '❌ REJECTED';
+                case 'trade not done': return '❌ TRADE NOT DONE';
+                case 'not found': return '❌ NOT FOUND';
+                case 'under review': return '🔍 UNDER REVIEW';
+                case 'pending': return '⏳ PENDING';
+                default: return '⏳ PENDING';
+            }
+        }
+
+        function getStatusMessage(status) {
+            switch(status?.toLowerCase()) {
+                case 'account open': return 'Account successfully opened hai';
+                case 'trade done': return 'Trade successfully complete ho gaya hai';
+                case 'rejected': return 'Admin ne reject kar diya hai';
+                case 'trade not done': return 'Trade complete nahi hua hai';
+                case 'not found': return 'Account nahi mila';
+                case 'under review': return 'Admin review kar rahe hain';
+                case 'pending': return 'Admin review kar rahe hain';
+                default: return 'Admin review kar rahe hain';
+            }
+        }
+
+        // Helper functions for payment status display
+        function getPaymentIcon(paymentStatus) {
+            switch(paymentStatus?.toLowerCase()) {
+                case 'paid': return 'fa-money-bill-wave';
+                case 'partial': return 'fa-hourglass-half';
+                case 'payment pending': return 'fa-hourglass-half';
+                case 'not_paid':
+                case 'unpaid':
+                case 'pending':
+                default: return 'fa-times-circle';
+            }
+        }
+
+        function getPaymentIconColor(paymentStatus) {
+            switch(paymentStatus?.toLowerCase()) {
+                case 'paid': return 'text-green-600';
+                case 'partial': return 'text-yellow-600';
+                case 'payment pending': return 'text-yellow-600';
+                case 'not_paid':
+                case 'unpaid':
+                case 'pending':
+                default: return 'text-red-600';
+            }
+        }
+
+        function getPaymentColor(paymentStatus) {
+            switch(paymentStatus?.toLowerCase()) {
+                case 'paid': return 'bg-green-100 text-green-800 border border-green-200';
+                case 'partial': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                case 'payment pending': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                case 'not_paid':
+                case 'unpaid':
+                case 'pending':
+                default: return 'bg-red-100 text-red-800 border border-red-200';
+            }
+        }
+
+        function getPaymentLabel(paymentStatus) {
+            switch(paymentStatus?.toLowerCase()) {
+                case 'paid': return '💰 PAID';
+                case 'partial': return '💸 PARTIAL PAID';
+                case 'payment pending': return '⏳ PAYMENT PENDING';
+                case 'not_paid':
+                case 'unpaid':
+                case 'pending':
+                default: return '❌ NOT PAID';
+            }
+        }
+
+        function getPaymentMessage(paymentStatus) {
+            switch(paymentStatus?.toLowerCase()) {
+                case 'paid': return 'Payment mil gaya hai';
+                case 'partial': return 'Partial payment mila hai';
+                case 'payment pending': return 'Payment process ho raha hai';
+                case 'not_paid':
+                case 'unpaid':
+                case 'pending':
+                default: return 'Payment abhi nahi mila';
+            }
+        }
+
+        // Helper functions for report type
+        function getReportTypeIcon(type) {
+            return type === 'trade' ? 'fa-chart-line' : 'fa-user-plus';
+        }
+
+        function getReportTypeColor(type) {
+            return type === 'trade' ? 'bg-green-600' : 'bg-blue-600';
+        }
+
+        function getReportTypeLabel(type) {
+            return type === 'trade' ? 'Trade Report' : 'Account Open Report';
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // View report details
+        function viewReport(reportId) {
+            const report = allReports.find(r => r.id === reportId);
+            if (!report) return;
+
+            const modalContent = document.getElementById('modal-content');
+            modalContent.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Status Section -->
+                    <div class="text-center p-6 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-center space-x-3 mb-3">
+                            <i class="fas ${getStatusIcon(report.status)} ${getStatusIconColor(report.status)} text-2xl"></i>
+                            <span class="px-4 py-2 rounded-full text-lg font-bold ${getStatusColor(report.status)}">
+                                ${getStatusLabel(report.status)}
+                            </span>
+                        </div>
+                        <p class="text-text-medium font-medium">${getStatusMessage(report.status)}</p>
+                    </div>
+
+                    ${report.payment_status ? `
+                    <!-- Payment Status Section -->
+                    <div class="text-center p-6 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-center space-x-3 mb-3">
+                            <i class="fas ${getPaymentIcon(report.payment_status)} ${getPaymentIconColor(report.payment_status)} text-2xl"></i>
+                            <span class="px-4 py-2 rounded-full text-lg font-bold ${getPaymentColor(report.payment_status)}">
+                                ${getPaymentLabel(report.payment_status)}
+                            </span>
+                        </div>
+                        <p class="text-text-medium font-medium">${getPaymentMessage(report.payment_status)}</p>
+                    </div>
+                    ` : ''}
+
+                    <!-- Report Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-text-medium mb-2">Report Type</label>
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 ${getReportTypeColor(report.report_type)} rounded-lg flex items-center justify-center">
+                                    <i class="fas ${getReportTypeIcon(report.report_type)} text-white text-sm"></i>
+                                </div>
+                                <span class="font-medium text-text-dark">${getReportTypeLabel(report.report_type)}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-medium mb-2">Submitted On</label>
+                            <p class="font-medium text-text-dark">${formatDate(report.created_at)}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-medium mb-2">Application Name</label>
+                            <p class="font-medium text-text-dark">${report.application_name || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-medium mb-2">Customer Name</label>
+                            <p class="font-medium text-text-dark">${report.customer_name || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-medium mb-2">Mobile Number</label>
+                            <p class="font-medium text-text-dark">${report.mobile_number || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-medium mb-2">Campaign ID</label>
+                            <p class="font-medium text-text-dark">${report.campaign_id || 'N/A'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Admin Notes -->
+                    ${report.admin_notes && report.admin_notes.trim() ? `
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-text-medium mb-3">Admin Message</label>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-center space-x-2 mb-3">
+                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user-shield text-white text-sm"></i>
+                                    </div>
+                                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-comment-alt text-blue-600 text-sm"></i>
+                                    </div>
+                                    <span class="font-medium text-blue-800">Admin ka message:</span>
+                                </div>
+                                <p class="text-blue-700 leading-relaxed">${report.admin_notes}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById('report-modal').classList.remove('hidden');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('report-modal').classList.add('hidden');
+        }
+
+        // Real-time monitoring for admin updates
+        function startRealtimeMonitoring() {
+            console.log('Starting real-time monitoring for admin updates...');
+            
+            monitoringInterval = setInterval(async () => {
+                try {
+                    // First check what fields are available
+                    const { data: latestReports, error } = await App.supabase
+                        .from('reports')
+                        .select('id, status, payment_status, admin_notes, created_at')
+                        .eq('user_id', currentUser.id)
+                        .order('created_at', { ascending: false });
+
+                    if (error) {
+                        // If that fails, try with minimal fields
+                        console.log('Monitoring with full fields failed, trying minimal:', error.message);
+                        
+                        const fallbackResult = await App.supabase
+                            .from('reports')
+                            .select('id, status')
+                            .eq('user_id', currentUser.id)
+                            .order('created_at', { ascending: false });
+                        
+                        if (fallbackResult.error) {
+                            throw fallbackResult.error;
+                        }
+                        
+                        // Use fallback data
+                        const fallbackReports = fallbackResult.data;
+                        if (fallbackReports && fallbackReports.length > 0) {
+                            let hasUpdates = false;
+                            let updateCount = 0;
+
+                            fallbackReports.forEach(latest => {
+                                const existing = allReports.find(r => r.id === latest.id);
+                                if (existing && existing.status !== latest.status) {
+                                    console.log(`Report ${latest.id} status updated:`, {
+                                        oldStatus: existing.status,
+                                        newStatus: latest.status
+                                    });
+
+                                    existing.status = latest.status;
+                                    hasUpdates = true;
+                                    updateCount++;
+                                }
+                            });
+
+                            if (hasUpdates) {
+                                console.log(`${updateCount} reports updated by admin`);
+                                showNotification(`Report Updates! Admin ne ${updateCount} report update kiya hai`, 'success');
+                                updateStatistics();
+                                filterReports(currentFilter);
+                            }
+                        }
+                        return;
+                    }
+
+                    if (latestReports && latestReports.length > 0) {
+                        let hasUpdates = false;
+                        let updateCount = 0;
+
+                        latestReports.forEach(latest => {
+                            const existing = allReports.find(r => r.id === latest.id);
+                            if (existing) {
+                                if (existing.status !== latest.status || 
+                                    existing.payment_status !== latest.payment_status ||
+                                    existing.admin_notes !== latest.admin_notes) {
+                                    
+                                    console.log(`Report ${latest.id} updated:`, {
+                                        oldStatus: existing.status,
+                                        newStatus: latest.status,
+                                        oldPayment: existing.payment_status,
+                                        newPayment: latest.payment_status,
+                                        adminNotes: latest.admin_notes ? 'Added/Updated' : 'No change'
+                                    });
+
+                                    existing.status = latest.status;
+                                    existing.payment_status = latest.payment_status;
+                                    existing.admin_notes = latest.admin_notes;
+                                    hasUpdates = true;
+                                    updateCount++;
+                                }
+                            }
+                        });
+
+                        if (hasUpdates) {
+                            console.log(`${updateCount} reports updated by admin`);
+                            showNotification(`Report Updates! Admin ne ${updateCount} report update kiya hai`, 'success');
+                            updateStatistics();
+                            filterReports(currentFilter);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Real-time monitoring check failed:', error.message);
+                }
+            }, 10000); // Check every 10 seconds
+
+            // Also check when page becomes visible
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    setTimeout(() => {
+                        loadReports();
+                    }, 1000);
+                }
+            });
+        }
+
+        // Refresh reports manually
+        async function refreshReports() {
+            const refreshBtn = document.querySelector('button[onclick="refreshReports()"]');
+            const originalContent = refreshBtn.innerHTML;
+            
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Refreshing...';
+            refreshBtn.disabled = true;
+
+            try {
+                await loadReports();
+                showNotification('Reports refreshed successfully!', 'success');
+            } catch (error) {
+                showNotification('Error refreshing reports', 'error');
+            } finally {
+                refreshBtn.innerHTML = originalContent;
+                refreshBtn.disabled = false;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification bg-white border-l-4 ${
+                type === 'success' ? 'border-green-500' : 
+                type === 'error' ? 'border-red-500' : 'border-blue-500'
+            } rounded-lg shadow-lg p-4`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle text-green-500' : 
+                        type === 'error' ? 'fa-exclamation-circle text-red-500' : 'fa-info-circle text-blue-500'
+                    } mr-3"></i>
+                    <span class="text-text-dark font-medium">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Navigation functions
+        function goBack() {
+            window.location.href = 'dashboard.html';
+        }
+
+        function logout() {
+            App.signOut();
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+        });
+
+        // Advanced Filter Functions (copied from admin panel)
+        
+        // Date Range Filter Functions
+        function toggleDateRangeFilter() {
+            const panel = document.getElementById('dateRangePanel');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+        
+        function closeDateRangeFilter() {
+            const panel = document.getElementById('dateRangePanel');
+            panel.classList.add('hidden');
+        }
+        
+        function setDatePreset(preset) {
+            const fromDate = document.getElementById('fromDateFilter');
+            const toDate = document.getElementById('toDateFilter');
+            const today = new Date();
+            let startDate, endDate;
+            
+            switch(preset) {
+                case 'today':
+                    startDate = new Date(today);
+                    endDate = new Date(today);
+                    break;
+                case 'yesterday':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 1);
+                    endDate = new Date(startDate);
+                    break;
+                case 'thisWeek':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - today.getDay());
+                    endDate = new Date(today);
+                    break;
+                case 'lastWeek':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - today.getDay() - 7);
+                    endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+                    break;
+                case 'thisMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today);
+                    break;
+                case 'lastMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+            }
+            
+            fromDate.value = startDate.toISOString().split('T')[0];
+            toDate.value = endDate.toISOString().split('T')[0];
+            updateDateRangeInfo();
+        }
+        
+        function updateDateRangeInfo() {
+            const fromDate = document.getElementById('fromDateFilter').value;
+            const toDate = document.getElementById('toDateFilter').value;
+            const infoElement = document.getElementById('dateRangeInfo');
+            
+            if (fromDate && toDate) {
+                infoElement.textContent = `From ${fromDate} to ${toDate}`;
+            } else if (fromDate) {
+                infoElement.textContent = `From ${fromDate} onwards`;
+            } else if (toDate) {
+                infoElement.textContent = `Up to ${toDate}`;
+            } else {
+                infoElement.textContent = 'No date range selected';
+            }
+        }
+        
+        function applyDateRangeFilter() {
+            console.log('🗓️ Applying date range filter...');
+            applyAdvancedFilters();
+            closeDateRangeFilter();
+            showNotification('Date range filter applied successfully', 'success');
+        }
+        
+        function clearDateRangeFilter() {
+            document.getElementById('fromDateFilter').value = '';
+            document.getElementById('toDateFilter').value = '';
+            document.getElementById('submissionDateFilter').value = '';
+            updateDateRangeInfo();
+            applyAdvancedFilters();
+            showNotification('Date range filter cleared', 'success');
+        }
+        
+        function clearAllFilters() {
+            // Clear all filter inputs
+            document.getElementById('campaignFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('paymentFilter').value = '';
+            document.getElementById('submissionDateFilter').value = '';
+            document.getElementById('fromDateFilter').value = '';
+            document.getElementById('toDateFilter').value = '';
+            updateDateRangeInfo();
+            
+            // Reset report type to 'all'
+            currentFilter = 'all';
+            updateFilterButtons();
+            
+            // Apply empty filters to show all reports
+            applyAdvancedFilters();
+            showNotification('All filters cleared', 'success');
+        }
+        
+        function updateFilterButtons() {
+            // Reset all filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-primary', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+            });
+            
+            // Set active button
+            const activeBtn = document.getElementById(`filter-${currentFilter === 'account_open' ? 'account' : currentFilter}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                activeBtn.classList.add('bg-primary', 'text-white');
+            }
+        }
+        
+        async function loadCampaignFilterOptions() {
+            try {
+                // Load all campaigns for the filter dropdown
+                const { data: campaigns, error } = await App.supabase
+                    .from('campaigns')
+                    .select('id, name')
+                    .order('name');
+                
+                if (error) {
+                    console.log('Could not load campaigns for filter:', error);
+                    return;
+                }
+                
+                const campaignFilter = document.getElementById('campaignFilter');
+                campaignFilter.innerHTML = '<option value="">All Campaigns</option>';
+                
+                if (campaigns && campaigns.length > 0) {
+                    campaigns.forEach(campaign => {
+                        const option = document.createElement('option');
+                        option.value = campaign.name;
+                        option.textContent = campaign.name;
+                        campaignFilter.appendChild(option);
+                    });
+                }
+                
+                // Also add unique application names from existing reports
+                const uniqueApplications = [...new Set(allReports.map(r => r.application_name).filter(Boolean))];
+                uniqueApplications.forEach(appName => {
+                    // Only add if not already in the list
+                    if (!campaigns?.find(c => c.name === appName)) {
+                        const option = document.createElement('option');
+                        option.value = appName;
+                        option.textContent = appName;
+                        campaignFilter.appendChild(option);
+                    }
+                });
+                
+            } catch (error) {
+                console.log('Error loading campaign filter options:', error);
+            }
+        }
+        
+        function applyAdvancedFilters() {
+            console.log('🔍 Applying advanced filters...');
+            
+            let filtered = [...allReports];
+            const originalCount = filtered.length;
+            
+            // Apply report type filter (from existing tabs)
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(report => report.report_type === currentFilter);
+                console.log(`📋 Report type filter (${currentFilter}): ${originalCount} → ${filtered.length}`);
+            }
+            
+            // Campaign filter
+            const campaignFilter = document.getElementById('campaignFilter').value;
+            if (campaignFilter) {
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(report => report.application_name === campaignFilter);
+                console.log(`🎯 Campaign filter (${campaignFilter}): ${beforeCount} → ${filtered.length}`);
+            }
+            
+            // Status filter
+            const statusFilter = document.getElementById('statusFilter').value;
+            if (statusFilter) {
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(report => report.status === statusFilter);
+                console.log(`📊 Status filter (${statusFilter}): ${beforeCount} → ${filtered.length}`);
+            }
+            
+            // Payment filter - Updated to handle all payment status variations
+            const paymentFilter = document.getElementById('paymentFilter').value;
+            if (paymentFilter) {
+                const beforeCount = filtered.length;
+                
+                if (paymentFilter === 'not_paid') {
+                    // Include all variations of "not paid" including legacy "Pending" status
+                    filtered = filtered.filter(report => 
+                        report.payment_status === 'not_paid' || 
+                        report.payment_status === 'unpaid' || 
+                        report.payment_status === 'Pending' || // Legacy data
+                        report.payment_status === 'pending' || // Legacy data
+                        !report.payment_status
+                    );
+                    console.log(`❌ NOT PAID filter: Including not_paid, unpaid, Pending, pending, null`);
+                } else if (paymentFilter === 'paid') {
+                    // Paid status
+                    filtered = filtered.filter(report => report.payment_status === 'paid');
+                    console.log(`💰 PAID filter: Including only 'paid'`);
+                } else if (paymentFilter === 'partial') {
+                    // Partial paid status
+                    filtered = filtered.filter(report => 
+                        report.payment_status === 'partial' ||
+                        report.payment_status === 'partial_paid'
+                    );
+                    console.log(`💸 PARTIAL filter: Including 'partial' and 'partial_paid'`);
+                } else {
+                    // Direct match for any other status
+                    filtered = filtered.filter(report => report.payment_status === paymentFilter);
+                    console.log(`🔍 Direct filter: Looking for '${paymentFilter}'`);
+                }
+                
+                console.log(`💰 Payment filter (${paymentFilter}): ${beforeCount} → ${filtered.length}`);
+            }
+            
+            // Single submission date filter - Fixed timezone handling
+            const submissionDate = document.getElementById('submissionDateFilter').value;
+            if (submissionDate) {
+                console.log('📅 Filtering by date:', submissionDate);
+                const beforeCount = filtered.length;
+                
+                filtered = filtered.filter(report => {
+                    const reportDate = new Date(report.created_at);
+                    const reportDateOnly = new Date(reportDate.getFullYear(), reportDate.getMonth(), reportDate.getDate());
+                    const filterDate = new Date(submissionDate + 'T00:00:00');
+                    const filterDateOnly = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
+                    
+                    return reportDateOnly.getTime() === filterDateOnly.getTime();
+                });
+                
+                console.log(`📅 Date filter (${submissionDate}): ${beforeCount} → ${filtered.length}`);
+            }
+            
+            // Date range filter - Fixed timezone handling
+            const fromDate = document.getElementById('fromDateFilter')?.value;
+            const toDate = document.getElementById('toDateFilter')?.value;
+            
+            if (fromDate || toDate) {
+                console.log('🗓️ Applying date range filter:', { fromDate, toDate });
+                const beforeCount = filtered.length;
+                
+                filtered = filtered.filter(report => {
+                    const reportDate = new Date(report.created_at);
+                    const reportDateOnly = new Date(reportDate.getFullYear(), reportDate.getMonth(), reportDate.getDate());
+                    
+                    // If both dates are provided
+                    if (fromDate && toDate) {
+                        const startDateOnly = new Date(fromDate + 'T00:00:00');
+                        const endDateOnly = new Date(toDate + 'T23:59:59');
+                        const startDateComp = new Date(startDateOnly.getFullYear(), startDateOnly.getMonth(), startDateOnly.getDate());
+                        const endDateComp = new Date(endDateOnly.getFullYear(), endDateOnly.getMonth(), endDateOnly.getDate());
+                        
+                        return reportDateOnly.getTime() >= startDateComp.getTime() && reportDateOnly.getTime() <= endDateComp.getTime();
+                    }
+                    
+                    // If only from date is provided
+                    if (fromDate) {
+                        const startDateOnly = new Date(fromDate + 'T00:00:00');
+                        const startDateComp = new Date(startDateOnly.getFullYear(), startDateOnly.getMonth(), startDateOnly.getDate());
+                        return reportDateOnly.getTime() >= startDateComp.getTime();
+                    }
+                    
+                    // If only to date is provided
+                    if (toDate) {
+                        const endDateOnly = new Date(toDate + 'T23:59:59');
+                        const endDateComp = new Date(endDateOnly.getFullYear(), endDateOnly.getMonth(), endDateOnly.getDate());
+                        return reportDateOnly.getTime() <= endDateComp.getTime();
+                    }
+                    
+                    return true;
+                });
+                
+                console.log(`🗓️ Date range filter: ${beforeCount} → ${filtered.length}`);
+            }
+            
+            // Update filtered reports and display
+            filteredReports = filtered;
+            console.log(`✅ Final filter result: ${originalCount} → ${filteredReports.length} reports`);
+            
+            // Update display
+            displayReports(filteredReports);
+            updateStatistics();
+        }
+        
+        // Add event listeners for date inputs
+        function initializeDateFilters() {
+            const fromDate = document.getElementById('fromDateFilter');
+            const toDate = document.getElementById('toDateFilter');
+            
+            if (fromDate) {
+                fromDate.addEventListener('change', updateDateRangeInfo);
+            }
+            if (toDate) {
+                toDate.addEventListener('change', updateDateRangeInfo);
+            }
+        }
+        
+        // Update the existing loadReports function to include campaign filter loading
+        const originalLoadReports = loadReports;
+        loadReports = async function() {
+            await originalLoadReports();
+            // Load campaign filter options after reports are loaded
+            await loadCampaignFilterOptions();
+            // Initialize date filters
+            initializeDateFilters();
+        };
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

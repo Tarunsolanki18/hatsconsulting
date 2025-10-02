@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Test - HATS Consulting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">Database Connection Test</h1>
+        
+        <div class="grid gap-6">
+            <!-- Connection Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">1. Connection Test</h2>
+                <button onclick="testConnection()" class="bg-blue-500 text-white px-4 py-2 rounded mr-4">Test Connection</button>
+                <div id="connectionResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+
+            <!-- Tables Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">2. Database Tables Test</h2>
+                <button onclick="testTables()" class="bg-green-500 text-white px-4 py-2 rounded mr-4">Test Tables</button>
+                <button onclick="createTables()" class="bg-yellow-500 text-white px-4 py-2 rounded mr-4">Create Tables</button>
+                <div id="tablesResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+
+            <!-- Reports Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">3. Reports Data Test</h2>
+                <button onclick="testReports()" class="bg-purple-500 text-white px-4 py-2 rounded mr-4">Check Reports</button>
+                <button onclick="createSampleReport()" class="bg-orange-500 text-white px-4 py-2 rounded mr-4">Create Sample Report</button>
+                <div id="reportsResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+
+            <!-- Current User Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">4. Authentication Test</h2>
+                <button onclick="testAuth()" class="bg-red-500 text-white px-4 py-2 rounded mr-4">Check Current User</button>
+                <div id="authResult" class="mt-4 p-4 rounded hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            window.APP_CONFIG.SUPABASE_URL, 
+            window.APP_CONFIG.SUPABASE_ANON_KEY
+        );
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.className = `mt-4 p-4 rounded ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            element.innerHTML = message;
+            element.classList.remove('hidden');
+        }
+
+        async function testConnection() {
+            try {
+                console.log('Testing connection...');
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                showResult('connectionResult', `✅ Connection successful!<br>
+                    <strong>Supabase URL:</strong> ${window.APP_CONFIG.SUPABASE_URL}<br>
+                    <strong>Session:</strong> ${data.session ? 'Active' : 'No session'}`);
+                    
+            } catch (error) {
+                console.error('Connection error:', error);
+                showResult('connectionResult', `❌ Connection failed:<br>${error.message}`, false);
+            }
+        }
+
+        async function testTables() {
+            try {
+                console.log('Testing tables...');
+                let results = [];
+                
+                // Test profiles table
+                try {
+                    const { data: profiles, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('count', { count: 'exact', head: true });
+                    
+                    if (profileError) {
+                        results.push(`❌ Profiles table: ${profileError.message}`);
+                    } else {
+                        results.push(`✅ Profiles table: Accessible`);
+                    }
+                } catch (e) {
+                    results.push(`❌ Profiles table: ${e.message}`);
+                }
+                
+                // Test reports table
+                try {
+                    const { data: reports, error: reportsError } = await supabase
+                        .from('reports')
+                        .select('count', { count: 'exact', head: true });
+                    
+                    if (reportsError) {
+                        results.push(`❌ Reports table: ${reportsError.message}`);
+                    } else {
+                        results.push(`✅ Reports table: Accessible`);
+                    }
+                } catch (e) {
+                    results.push(`❌ Reports table: ${e.message}`);
+                }
+                
+                // Test campaigns table
+                try {
+                    const { data: campaigns, error: campaignsError } = await supabase
+                        .from('campaigns')
+                        .select('count', { count: 'exact', head: true });
+                    
+                    if (campaignsError) {
+                        results.push(`❌ Campaigns table: ${campaignsError.message}`);
+                    } else {
+                        results.push(`✅ Campaigns table: Accessible`);
+                    }
+                } catch (e) {
+                    results.push(`❌ Campaigns table: ${e.message}`);
+                }
+                
+                // Test earnings table
+                try {
+                    const { data: earnings, error: earningsError } = await supabase
+                        .from('earnings')
+                        .select('count', { count: 'exact', head: true });
+                    
+                    if (earningsError) {
+                        results.push(`❌ Earnings table: ${earningsError.message}`);
+                    } else {
+                        results.push(`✅ Earnings table: Accessible`);
+                    }
+                } catch (e) {
+                    results.push(`❌ Earnings table: ${e.message}`);
+                }
+                
+                showResult('tablesResult', results.join('<br>'));
+                
+            } catch (error) {
+                console.error('Tables test error:', error);
+                showResult('tablesResult', `❌ Tables test failed: ${error.message}`, false);
+            }
+        }
+
+        async function createTables() {
+            try {
+                console.log('Creating tables...');
+                
+                // Create tables using SQL
+                const createTablesSQL = `
+                    -- Create profiles table if not exists
+                    CREATE TABLE IF NOT EXISTS profiles (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        email TEXT UNIQUE,
+                        full_name TEXT,
+                        status TEXT DEFAULT 'active',
+                        role TEXT DEFAULT 'user',
+                        last_sign_in_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create reports table if not exists
+                    CREATE TABLE IF NOT EXISTS reports (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        user_id UUID REFERENCES profiles(id),
+                        report_type TEXT NOT NULL,
+                        application_name TEXT,
+                        customer_name TEXT,
+                        mobile_number TEXT,
+                        notes TEXT,
+                        status TEXT DEFAULT 'pending',
+                        payment_status TEXT DEFAULT 'Pending',
+                        payment_proof_url TEXT,
+                        trade_proof_url TEXT,
+                        proof_url TEXT,
+                        admin_notes TEXT,
+                        approved_at TIMESTAMP,
+                        rejected_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create campaigns table if not exists
+                    CREATE TABLE IF NOT EXISTS campaigns (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        name TEXT NOT NULL,
+                        type TEXT,
+                        status TEXT DEFAULT 'active',
+                        is_active BOOLEAN DEFAULT true,
+                        account_open_link TEXT,
+                        trade_video_link TEXT,
+                        referral_link TEXT,
+                        image_url TEXT,
+                        payout_with_trade DECIMAL DEFAULT 0,
+                        payout_without_trade DECIMAL DEFAULT 0,
+                        description TEXT,
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create earnings table if not exists
+                    CREATE TABLE IF NOT EXISTS earnings (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        user_id UUID REFERENCES profiles(id),
+                        today_earnings DECIMAL DEFAULT 0,
+                        week_earnings DECIMAL DEFAULT 0,
+                        month_earnings DECIMAL DEFAULT 0,
+                        all_time_earnings DECIMAL DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW(),
+                        UNIQUE(user_id)
+                    );
+                `;
+
+                // Execute the SQL to create tables
+                const { data, error } = await supabase.rpc('exec_sql', { sql: createTablesSQL });
+                
+                if (error) {
+                    // If RPC doesn't work, try individual table creation
+                    console.log('RPC method failed, trying alternative...');
+                    showResult('tablesResult', `⚠️ Automatic table creation failed. Please run this SQL in Supabase Dashboard:<br><br>
+                        <textarea readonly class="w-full h-64 text-xs bg-gray-100 p-2 mt-2">${createTablesSQL}</textarea>`, false);
+                    return;
+                }
+                
+                showResult('tablesResult', '✅ All tables created successfully!');
+                
+            } catch (error) {
+                console.error('Create tables error:', error);
+                showResult('tablesResult', `⚠️ Please create tables manually in Supabase SQL Editor:<br><br>
+                    <textarea readonly class="w-full h-64 text-xs bg-gray-100 p-2 mt-2">
+-- Create profiles table
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE,
+    full_name TEXT,
+    status TEXT DEFAULT 'active',
+    role TEXT DEFAULT 'user',
+    last_sign_in_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create reports table
+CREATE TABLE IF NOT EXISTS reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id),
+    report_type TEXT NOT NULL,
+    application_name TEXT,
+    customer_name TEXT,
+    mobile_number TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'pending',
+    payment_status TEXT DEFAULT 'Pending',
+    payment_proof_url TEXT,
+    trade_proof_url TEXT,
+    proof_url TEXT,
+    admin_notes TEXT,
+    approved_at TIMESTAMP,
+    rejected_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create campaigns table
+CREATE TABLE IF NOT EXISTS campaigns (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    type TEXT,
+    status TEXT DEFAULT 'active',
+    is_active BOOLEAN DEFAULT true,
+    account_open_link TEXT,
+    trade_video_link TEXT,
+    referral_link TEXT,
+    image_url TEXT,
+    payout_with_trade DECIMAL DEFAULT 0,
+    payout_without_trade DECIMAL DEFAULT 0,
+    description TEXT,
+    admin_notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create earnings table
+CREATE TABLE IF NOT EXISTS earnings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id),
+    today_earnings DECIMAL DEFAULT 0,
+    week_earnings DECIMAL DEFAULT 0,
+    month_earnings DECIMAL DEFAULT 0,
+    all_time_earnings DECIMAL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+                    </textarea>`, false);
+            }
+        }
+
+        async function testReports() {
+            try {
+                console.log('Testing reports...');
+                
+                // Get all reports
+                const { data: reports, error } = await supabase
+                    .from('reports')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                let message = `✅ Reports table accessible!<br><strong>Total Reports:</strong> ${reports.length}<br><br>`;
+                
+                if (reports.length > 0) {
+                    message += '<strong>Recent Reports:</strong><br>';
+                    reports.slice(0, 5).forEach((report, index) => {
+                        message += `${index + 1}. Type: ${report.report_type}, Status: ${report.status}, Date: ${new Date(report.created_at).toLocaleDateString()}<br>`;
+                    });
+                } else {
+                    message += '<em>No reports found in database.</em>';
+                }
+                
+                showResult('reportsResult', message);
+                
+            } catch (error) {
+                console.error('Reports test error:', error);
+                showResult('reportsResult', `❌ Reports test failed: ${error.message}`, false);
+            }
+        }
+
+        async function createSampleReport() {
+            try {
+                console.log('Creating sample report...');
+                
+                // First get current user
+                const { data: session } = await supabase.auth.getSession();
+                
+                if (!session.session) {
+                    throw new Error('No authenticated user. Please login first.');
+                }
+                
+                const userId = session.session.user.id;
+                
+                // Create sample report
+                const sampleReport = {
+                    user_id: userId,
+                    report_type: 'trade',
+                    application_name: 'Test Campaign',
+                    customer_name: 'John Doe',
+                    mobile_number: '9876543210',
+                    notes: 'Sample report for testing - ' + new Date().toLocaleString(),
+                    status: 'pending',
+                    payment_status: 'Pending',
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabase
+                    .from('reports')
+                    .insert(sampleReport)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                showResult('reportsResult', `✅ Sample report created successfully!<br>
+                    <strong>Report ID:</strong> ${data.id}<br>
+                    <strong>Type:</strong> ${data.report_type}<br>
+                    <strong>Status:</strong> ${data.status}`);
+                
+            } catch (error) {
+                console.error('Create sample report error:', error);
+                showResult('reportsResult', `❌ Failed to create sample report: ${error.message}`, false);
+            }
+        }
+
+        async function testAuth() {
+            try {
+                console.log('Testing auth...');
+                
+                const { data: session, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                if (!session.session) {
+                    showResult('authResult', `⚠️ No user logged in. Please login to test report submission.`, false);
+                    return;
+                }
+                
+                const user = session.session.user;
+                const isAdmin = window.APP_CONFIG.ADMIN_EMAILS.includes(user.email.toUpperCase());
+                
+                showResult('authResult', `✅ User authenticated!<br>
+                    <strong>Email:</strong> ${user.email}<br>
+                    <strong>User ID:</strong> ${user.id}<br>
+                    <strong>Admin:</strong> ${isAdmin ? 'Yes' : 'No'}<br>
+                    <strong>Created:</strong> ${new Date(user.created_at).toLocaleString()}`);
+                
+            } catch (error) {
+                console.error('Auth test error:', error);
+                showResult('authResult', `❌ Auth test failed: ${error.message}`, false);
+            }
+        }
+
+        // Run initial connection test on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            testConnection();
+        });
+    </script>
+</body>
+</html>

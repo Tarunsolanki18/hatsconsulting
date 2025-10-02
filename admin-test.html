@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel Test</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+</head>
+<body>
+    <div class="p-8">
+        <h1 class="text-2xl font-bold mb-4">Admin Panel Test</h1>
+        <button onclick="testAdmin()" class="bg-blue-500 text-white px-4 py-2 rounded">Test Admin Functions</button>
+        <div id="results" class="mt-4"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/config.js"></script>
+    <script src="assets/app.js"></script>
+    
+    <script>
+        function showNotification(message, type = 'info') {
+            console.log(`${type.toUpperCase()}: ${message}`);
+            document.getElementById('results').innerHTML += `<p class="text-${type === 'error' ? 'red' : 'green'}-600">${message}</p>`;
+        }
+        
+        async function testAdmin() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing admin functions...</p>';
+            
+            try {
+                // Test 1: Check if scripts loaded
+                results.innerHTML += `<p>✅ Supabase loaded: ${typeof window.supabase !== 'undefined'}</p>`;
+                results.innerHTML += `<p>✅ Config loaded: ${typeof window.APP_CONFIG !== 'undefined'}</p>`;
+                results.innerHTML += `<p>✅ App loaded: ${typeof window.App !== 'undefined'}</p>`;
+                
+                // Test 2: Check authentication
+                if (window.App) {
+                    const session = await window.App.getSession();
+                    const user = session?.user;
+                    
+                    results.innerHTML += `<p>✅ User session: ${user ? user.email : 'Not logged in'}</p>`;
+                    
+                    if (user) {
+                        const isAdmin = window.App.isAdmin(user);
+                        results.innerHTML += `<p>✅ Admin status: ${isAdmin ? 'Yes' : 'No'}</p>`;
+                        
+                        if (isAdmin) {
+                            results.innerHTML += `<p>✅ Admin panel should work!</p>`;
+                            results.innerHTML += `<p><a href="admin.html" class="text-blue-600 underline">Go to Admin Panel</a></p>`;
+                        } else {
+                            results.innerHTML += `<p>❌ User is not admin</p>`;
+                        }
+                    } else {
+                        results.innerHTML += `<p>❌ Please login first: <a href="login.html" class="text-blue-600 underline">Login</a></p>`;
+                    }
+                }
+                
+                // Test 3: Test database connection
+                if (window.App?.supabase) {
+                    const { data, error } = await window.App.supabase
+                        .from('profiles')
+                        .select('count', { count: 'exact', head: true });
+                        
+                    if (error) {
+                        results.innerHTML += `<p>❌ Database error: ${error.message}</p>`;
+                    } else {
+                        results.innerHTML += `<p>✅ Database connected</p>`;
+                    }
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<p>❌ Test error: ${error.message}</p>`;
+                console.error('Admin test error:', error);
+            }
+        }
+        
+        // Auto-run test
+        setTimeout(testAdmin, 1000);
+    </script>
+</body>
+</html>
