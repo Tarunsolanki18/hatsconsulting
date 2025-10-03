@@ -241,7 +241,7 @@
                     const profileData = {
                         id: user.id,
                         email: user.email,
-                        full_name: user.user_metadata?.full_name || user.user_metadata?.fullname || user.email.split('@')[0],
+                        full_name: user.user_metadata?.full_name || user.user_metadata?.fullname ,
                         status: 'active',
                         last_sign_in_at: new Date().toISOString(),
                         created_at: new Date().toISOString(),
