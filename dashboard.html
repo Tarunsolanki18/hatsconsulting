@@ -1026,6 +1026,200 @@
             }
         }
 
+        /**
+         * Updates the user's full name in both profile and user metadata
+         * @param {string} fullName - The full name to update
+         */
+        async function updateUserFullName(fullName) {
+            if (!fullName?.trim()) {
+                console.warn('⚠️ Cannot update: Invalid full name provided');
+                return false;
+            }
+            
+            // Validate currentUser exists
+            if (!currentUser || !currentUser.id) {
+                const errorMsg = 'Cannot update: User not authenticated or session expired';
+                console.error('❌', errorMsg);
+                alert('Session expired. Please log in again.');
+                window.location.href = 'login.html';
+                throw new Error(errorMsg);
+            }
+            
+            console.log('🔄 Starting name update process...');
+            console.log('Current user state:', {
+                id: currentUser.id,
+                email: currentUser.email,
+                metadata: currentUser.user_metadata
+            });
+            
+            try {
+                console.log(`🔄 Updating full name to: ${fullName}`);
+                
+                // 1. Update user metadata through App.supabase
+                const { data: { user }, error: metaError } = await App.supabase.auth.updateUser({
+                    data: { 
+                        full_name: fullName,
+                        email: currentUser.email
+                    }
+                });
+                
+                if (metaError) {
+                    console.error('❌ Metadata update failed:', metaError);
+                    throw new Error(`Failed to update user metadata: ${metaError.message || JSON.stringify(metaError)}`);
+                }
+                
+                console.log('✅ User metadata updated successfully');
+                
+                // Update the current user object with the updated metadata
+                if (user) {
+                    currentUser = user;
+                    console.log('✅ Current user object updated');
+                }
+                
+                // 2. Update profile in database
+                console.log('💾 Updating profile in database...');
+                console.log('Database update payload:', {
+                    full_name: fullName,
+                    updated_at: new Date().toISOString(),
+                    email: currentUser.email,
+                    user_id: currentUser.id
+                });
+                
+                const { data: profileData, error: profileError } = await App.supabase
+                    .from('profiles')
+                    .update({ 
+                        full_name: fullName,
+                        updated_at: new Date().toISOString(),
+                        email: currentUser.email  // Ensure email is also updated
+                    })
+                    .eq('id', currentUser.id)
+                    .select()
+                    .single();
+                
+                console.log('Database response:', { profileData, profileError });
+                
+                if (profileError) {
+                    console.error('❌ Profile database update failed:', profileError);
+                    console.error('Error details:', {
+                        message: profileError.message,
+                        code: profileError.code,
+                        details: profileError.details,
+                        hint: profileError.hint
+                    });
+                    throw new Error(`Failed to update profile in database: ${profileError.message || JSON.stringify(profileError)}`);
+                }
+                
+                if (!profileData) {
+                    console.error('❌ No profile data returned from database update');
+                    throw new Error('Database update succeeded but no data returned');
+                }
+                
+                console.log('✅ Profile updated in database:', profileData);
+                
+                // Verify the database update worked
+                console.log('🔍 Verifying database update...');
+                const { data: verifyProfile, error: verifyError } = await App.supabase
+                    .from('profiles')
+                    .select('full_name, updated_at')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                if (verifyError) {
+                    console.error('❌ Could not verify database update:', verifyError);
+                } else if (verifyProfile?.full_name === fullName) {
+                    console.log('✅ Database update verified successfully:', verifyProfile);
+                } else {
+                    console.error('❌ Database update verification failed:', {
+                        expected: fullName,
+                        actual: verifyProfile?.full_name,
+                        profile: verifyProfile
+                    });
+                    throw new Error('Database update succeeded but verification failed');
+                }
+                
+                // 3. Update localStorage
+                localStorage.setItem('user_full_name', fullName);
+                console.log('✅ localStorage updated');
+                
+                // 4. Update current user object
+                if (!currentUser.user_metadata) {
+                    currentUser.user_metadata = {};
+                }
+                currentUser.user_metadata.full_name = fullName;
+                
+                console.log('✅ Successfully updated full name to:', fullName);
+                console.log('✅ Name update process completed successfully');
+                
+                // Final verification - make sure the profile reflects the update
+                console.log('🔍 Final verification of profile data...');
+                const { data: finalProfile } = await App.supabase
+                    .from('profiles')
+                    .select('full_name, updated_at')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                console.log('Final profile state:', finalProfile);
+                if (finalProfile?.full_name === fullName) {
+                    console.log('✅ Final verification successful - name is persisted in database');
+                } else {
+                    console.error('❌ Final verification failed - name not properly persisted');
+                }
+                
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Error updating full name:', {
+                    message: error?.message || 'Unknown error',
+                    name: error?.name || 'Error',
+                    stack: error?.stack || 'No stack trace',
+                    fullError: error,
+                    errorString: String(error),
+                    currentUser: currentUser ? {
+                        id: currentUser.id,
+                        email: currentUser.email
+                    } : null
+                });
+                throw error; // Re-throw to be caught by the caller
+            }
+        }
+        
+        // Add event listener for name update button if it exists
+        document.addEventListener('DOMContentLoaded', () => {
+            const updateNameBtn = document.getElementById('update-name-btn');
+            if (updateNameBtn) {
+                updateNameBtn.addEventListener('click', async () => {
+                    // Get current name from the displayed element as a fallback
+                    const currentName = document.getElementById('user-full-name')?.textContent || '';
+                    const newName = prompt('Enter your full name:', currentName);
+                    
+                    if (newName && newName.trim()) {
+                        try {
+                            console.log('Attempting to update name to:', newName.trim());
+                            const success = await updateUserFullName(newName.trim());
+                            if (success) {
+                                // Update the UI immediately
+                                const nameElement = document.getElementById('user-full-name');
+                                if (nameElement) {
+                                    nameElement.textContent = newName.trim();
+                                }
+                                // Show success message
+                                alert('Name updated successfully!');
+                            } else {
+                                throw new Error('Failed to update name - function returned false');
+                            }
+                        } catch (error) {
+                            console.error('Error updating name:', {
+                                message: error?.message || 'Unknown error',
+                                error: error,
+                                errorString: String(error)
+                            });
+                            alert(`Failed to update name: ${error?.message || 'Unknown error'}. Please try again or check console for details.`);
+                        }
+                    }
+                });
+            }
+        });
+
         // Initialize on page load after all scripts are loaded
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initDashboard);
