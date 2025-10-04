@@ -263,25 +263,260 @@
                 currentUser = session.user;
                 
                 // Load user profile first
-                const { data: profile } = await App.supabase
+                console.log('🔍 Fetching user profile from database...');
+                const { data: profile, error: profileError } = await App.supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', currentUser.id)
                     .single();
                     
-                // Update last login time if profile exists
-                if (profile) {
-                    await App.supabase
+                console.log('Profile fetch result:', { profile, profileError });
+                
+                if (profileError && profileError.code !== 'PGRST116') {
+                    console.error('❌ Error fetching profile:', profileError);
+                }
+                    
+                // If no profile exists, create one with user data
+                if (!profile) {
+                    const fullName = currentUser.user_metadata?.full_name || 
+                                   currentUser.user_metadata?.fullname || 
+                                   currentUser.email.split('@')[0];
+                    
+                    console.log('📝 Creating new profile with data:', {
+                        id: currentUser.id,
+                        email: currentUser.email,
+                        full_name: fullName,
+                        status: 'active',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    const { data: newProfile, error: profileError } = await App.supabase
                         .from('profiles')
-                        .update({ 
+                        .upsert({
+                            id: currentUser.id,
+                            email: currentUser.email,
+                            full_name: fullName,
+                            status: 'active',
+                            created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString()
                         })
-                        .eq('id', currentUser.id);
+                        .select()
+                        .single();
+                    
+                    console.log('Profile creation result:', { newProfile, profileError });
+                    
+                    if (profileError) {
+                        console.error('❌ Error creating user profile:', profileError);
+                    }
+                    
+                    // Reload the profile after creation
+                    const { data: reloadedProfile } = await App.supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', currentUser.id)
+                        .single();
+                    
+                    console.log('Reloaded profile after creation:', reloadedProfile);
+                    
+                    // Update profile reference
+                    if (reloadedProfile) {
+                        profile = reloadedProfile;
+                        console.log('✅ Profile loaded after creation');
+                    }
                 }
+                
+                // Update last login time
+                await App.supabase
+                    .from('profiles')
+                    .update({ 
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentUser.id);
 
-                if (profile) {
-                    document.getElementById('user-name').textContent = profile.full_name || currentUser.email;
-                    document.getElementById('user-full-name').textContent = profile.full_name || currentUser.email;
+                // Enhanced name resolution with detailed logging and fallbacks
+                console.group('🔍 Name Resolution');
+                
+                // Log all available name sources
+                console.log('Available name sources:', {
+                    'profile.full_name': profile?.full_name,
+                    'user_metadata.full_name': currentUser.user_metadata?.full_name,
+                    'user_metadata.fullname': currentUser.user_metadata?.fullname,
+                    'localStorage.user_full_name': localStorage.getItem('user_full_name'),
+                    'email_username': currentUser.email?.split('@')[0]
+                });
+                
+                let displayName = 'User';
+                let nameSource = 'default';
+                
+                // 1. Check profile.full_name first (most reliable - from database)
+                if (profile?.full_name?.trim()) {
+                    displayName = profile.full_name.trim();
+                    nameSource = 'profile.full_name';
+                    console.log('✅ Using name from database profile.full_name:', displayName);
+                } 
+                // 2. Check user_metadata.full_name (from auth)
+                else if (currentUser.user_metadata?.full_name?.trim()) {
+                    displayName = currentUser.user_metadata.full_name.trim();
+                    nameSource = 'user_metadata.full_name';
+                    console.log('ℹ️ Using name from user_metadata.full_name:', displayName);
+                    
+                    // Sync metadata name to database
+                    try {
+                        await App.supabase
+                            .from('profiles')
+                            .update({ 
+                                full_name: displayName,
+                                updated_at: new Date().toISOString() 
+                            })
+                            .eq('id', currentUser.id);
+                        console.log('✅ Synced metadata name to database');
+                        
+                        // Verify sync worked
+                        const { data: verifyProfile } = await App.supabase
+                            .from('profiles')
+                            .select('full_name')
+                            .eq('id', currentUser.id)
+                            .single();
+                        
+                        if (verifyProfile?.full_name === displayName) {
+                            console.log('✅ Metadata sync verified');
+                        } else {
+                            console.warn('⚠️ Metadata sync may have failed verification');
+                        }
+                    } catch (updateError) {
+                        console.warn('⚠️ Could not sync metadata name to database:', updateError);
+                    }
+                }
+                // 3. Check user_metadata.fullname (lowercase version)
+                else if (currentUser.user_metadata?.fullname?.trim()) {
+                    displayName = currentUser.user_metadata.fullname.trim();
+                    nameSource = 'user_metadata.fullname';
+                    console.log('ℹ️ Using name from user_metadata.fullname:', displayName);
+                    
+                    // Sync metadata name to database
+                    try {
+                        await App.supabase
+                            .from('profiles')
+                            .update({ 
+                                full_name: displayName,
+                                updated_at: new Date().toISOString() 
+                            })
+                            .eq('id', currentUser.id);
+                        console.log('✅ Synced metadata name (fullname) to database');
+                    } catch (updateError) {
+                        console.warn('⚠️ Could not sync metadata name (fullname) to database:', updateError);
+                    }
+                }
+                // 4. Check localStorage as last resort
+                else if (localStorage.getItem('user_full_name')?.trim()) {
+                    displayName = localStorage.getItem('user_full_name').trim();
+                    nameSource = 'localStorage';
+                    console.log('ℹ️ Using name from localStorage:', displayName);
+                    
+                    // Sync localStorage name to database
+                    try {
+                        await App.supabase
+                            .from('profiles')
+                            .update({ 
+                                full_name: displayName,
+                                updated_at: new Date().toISOString() 
+                            })
+                            .eq('id', currentUser.id);
+                        console.log('✅ Synced localStorage name to database');
+                        
+                        // Verify the update worked by re-querying
+                        const { data: verifyProfile } = await App.supabase
+                            .from('profiles')
+                            .select('full_name')
+                            .eq('id', currentUser.id)
+                            .single();
+                        
+                        if (verifyProfile?.full_name === displayName) {
+                            console.log('✅ Verified database update successful');
+                        } else {
+                            console.warn('⚠️ Database update may have failed - verification mismatch');
+                        }
+                    } catch (updateError) {
+                        console.warn('⚠️ Could not sync localStorage name to database:', updateError);
+                    }
+                }
+                // 5. Last resort: use email username
+                else if (currentUser.email) {
+                    displayName = currentUser.email.split('@')[0];
+                    nameSource = 'email_username';
+                    console.warn('⚠️ No full name found, falling back to email username:', displayName);
+                }
+                
+                console.log('✅ Final selected name:', displayName, 'from source:', nameSource);
+                
+                console.groupEnd();
+                
+                // Update all name elements on the page
+                document.querySelectorAll('[id^="user"][id$="name"]').forEach(el => {
+                    if (el) {
+                        console.log(`Updating element ${el.id} with:`, displayName);
+                        el.textContent = displayName;
+                    }
+                });
+                
+                // Update the profile in the database if needed
+                if (profile && (!profile.full_name || profile.full_name !== displayName) && displayName !== 'User') {
+                    console.log('🔄 Updating profile to match display name:', displayName);
+                    console.log('Current profile state:', {
+                        id: profile.id,
+                        full_name: profile.full_name,
+                        displayName: displayName
+                    });
+                    
+                    try {
+                        // Update the profile in the profiles table
+                        const { data: updateResult, error: updateError } = await App.supabase
+                            .from('profiles')
+                            .update({ 
+                                full_name: displayName,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', currentUser.id)
+                            .select()
+                            .single();
+                            
+                        console.log('Profile update result:', { updateResult, updateError });
+                        
+                        if (updateError) {
+                            console.error('❌ Profile update failed:', updateError);
+                            throw updateError;
+                        }
+                        
+                        if (updateResult?.full_name === displayName) {
+                            console.log('✅ Profile update verified successfully');
+                        } else {
+                            console.warn('⚠️ Profile update verification mismatch');
+                        }
+                        
+                        // Also update the user's metadata
+                        const { error: metaError } = await App.supabase.auth.updateUser({
+                            data: { 
+                                full_name: displayName,
+                                email: currentUser.email
+                            }
+                        });
+                        
+                        if (metaError) {
+                            console.error('❌ Metadata update failed:', metaError);
+                            throw metaError;
+                        }
+                        
+                        console.log('✅ Successfully updated profile and metadata with full name');
+                        
+                    } catch (updateError) {
+                        console.error('❌ Error updating user profile and metadata:', updateError);
+                        // Store in localStorage as fallback
+                        localStorage.setItem('user_full_name', displayName);
+                    }
+                } else {
+                    console.log('ℹ️ Profile update not needed - name already matches or conditions not met');
+                }
                     
                     // Load saved profile photo with localStorage fallback
                     const profileDiv = document.getElementById('profile-photo');
@@ -313,7 +548,6 @@
                     } else {
                         console.log('📷 No profile photo found, using default icon');
                     }
-                }
 
                 // Update last login time for this dashboard visit
                 try {
