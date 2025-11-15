@@ -112,8 +112,8 @@
     </div>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        <!-- Statistics Dashboard -->
+    <!-- <main class="container mx-auto px-4 py-8">
+       
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -136,39 +136,45 @@
                 <div class="text-3xl font-bold text-text-dark" id="pending-reports">0</div>
                 <div class="text-text-medium">Pending Reports</div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Filter Tabs -->
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
             <div class="flex flex-wrap gap-4 mb-6">
-                <button onclick="filterReports('all')" id="filter-all" class="filter-btn bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                <!-- <button onclick="filterReports('all')" id="filter-all" class="filter-btn bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-colors">
                     <i class="fas fa-list mr-2"></i>All Reports
-                </button>
-                <button onclick="filterReports('trade')" id="filter-trade" class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    <i class="fas fa-chart-line mr-2"></i>Trade Reports
-                </button>
-                <button onclick="filterReports('account_open')" id="filter-account" class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    <i class="fas fa-user-plus mr-2"></i>Account Open Reports
-                </button>
+                </button> -->
+                <button onclick="window.location.href='https://docs.google.com/spreadsheets/d/1pwwHPU9nixFgA53yZxIVcOz5RF-E4ZJ7MDIkkas3ktA/edit?usp=sharing';" 
+        id="filter-trade" 
+        class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+    <i class="fas fa-chart-line mr-2"></i>Trade Reports
+</button>
+
+                <button onclick="window.location.href='https://docs.google.com/spreadsheets/d/16uqouea_dJk7gEZfES4OLekBwwwQEsiORX5YDp2EB1o/edit?usp=sharing';"
+        id="filter-account"
+        class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+    <i class="fas fa-user-plus mr-2"></i>Account Open Reports
+</button>
+
             </div>
             
             <!-- Advanced Filter Options -->
-            <div class="border-t border-gray-200 pt-6">
+            <!-- <div class="border-t border-gray-200 pt-6">
                 <h3 class="text-lg font-semibold text-text-dark mb-4">
                     <i class="fas fa-filter text-primary mr-2"></i>Advanced Filters
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"> -->
                     
                     <!-- Campaign Filter -->
-                    <div>
+                    <!-- <div>
                         <label class="block text-sm font-medium text-text-medium mb-2">Campaign</label>
                         <select id="campaignFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                             <option value="">All Campaigns</option>
                         </select>
-                    </div>
+                    </div> -->
 
                     <!-- Status Filter -->
-                    <div>
+                    <!-- <div>
                         <label class="block text-sm font-medium text-text-medium mb-2">Status</label>
                         <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                             <option value="">All Status</option>
@@ -180,10 +186,10 @@
                             <option value="trade done">Trade Done</option>
                             <option value="trade not done">Trade Not Done</option>
                         </select>
-                    </div>
+                    </div> -->
 
                     <!-- Payment Status Filter -->
-                    <div>
+                    <!-- <div>
                         <label class="block text-sm font-medium text-text-medium mb-2">Payment Status</label>
                         <select id="paymentFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                             <option value="">All Payment</option>
@@ -191,25 +197,25 @@
                             <option value="not_paid">Not Paid</option>
                             <option value="partial">Partial Paid</option>
                         </select>
-                    </div>
+                    </div> -->
 
                     <!-- Single Date Filter -->
-                    <div>
+                    <!-- <div>
                         <label class="block text-sm font-medium text-text-medium mb-2">Submission Date</label>
                         <input type="date" id="submissionDateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" title="Select specific date">
                     </div>
-                    
+                     -->
                     <!-- Date Range Toggle Button -->
-                    <div>
+                    <!-- <div>
                         <label class="block text-sm font-medium text-text-medium mb-2">Date Range</label>
                         <button type="button" onclick="toggleDateRangeFilter()" class="w-full bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition-colors">
                             <i class="fas fa-calendar-range mr-2"></i>Range Filter
                         </button>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Date Range Filter Panel (Hidden by default) -->
-                <div id="dateRangePanel" class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4 hidden">
+                <!-- <div id="dateRangePanel" class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4 hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-md font-semibold text-text-dark">
                             <i class="fas fa-calendar-alt mr-2 text-purple-600"></i>
@@ -219,9 +225,9 @@
                             <i class="fas fa-times text-lg"></i>
                         </button>
                     </div>
-                    
+                     -->
                     <!-- Date Range Inputs -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
                             <input type="date" id="fromDateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -230,10 +236,10 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
                             <input type="date" id="toDateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Quick Date Presets -->
-                    <div class="mb-4">
+                    <!-- <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Quick Filters</label>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                             <button onclick="setDatePreset('today')" class="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
@@ -255,10 +261,10 @@
                                 <i class="fas fa-history mr-1"></i>Last Month
                             </button>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Filter Info and Actions -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <!-- <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-sm text-blue-800 font-medium mb-1">
@@ -270,10 +276,10 @@
                                 </p>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Action Buttons -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <button onclick="applyDateRangeFilter()" class="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
                             <i class="fas fa-filter mr-2"></i>Apply Date Range
                         </button>
@@ -281,10 +287,10 @@
                             <i class="fas fa-times mr-2"></i>Clear Range
                         </button>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Apply Filter Button -->
-                <div class="mt-4 flex justify-between">
+                <!-- <div class="mt-4 flex justify-between">
                     <button onclick="clearAllFilters()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
                         <i class="fas fa-times mr-2"></i>Clear All Filters
                     </button>
@@ -293,15 +299,15 @@
                     </button>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Reports List -->
-        <div id="reports-container" class="space-y-6">
+        <!-- <div id="reports-container" class="space-y-6"> -->
             <!-- Reports will be loaded here -->
-        </div>
+        <!-- </div> -->
 
         <!-- Empty State -->
-        <div id="empty-state" class="text-center py-12 hidden">
+        <!-- <div id="empty-state" class="text-center py-12 hidden">
             <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-file-alt text-gray-400 text-3xl"></i>
             </div>
@@ -310,7 +316,7 @@
             <button onclick="window.location.href='submit-report.html'" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors">
                 <i class="fas fa-plus mr-2"></i>Submit Your First Report
             </button>
-        </div>
+        </div> -->
     </main>
 
     <!-- Report Details Modal -->
