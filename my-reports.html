@@ -376,7 +376,7 @@
             } catch (error) {
                 console.error('Error initializing page:', error);
                 document.getElementById('loading-indicator').style.display = 'none';
-                showNotification('Error loading page. Please refresh.', 'error');
+                // showNotification('Error loading page. Please refresh.', 'error');
             }
         }
 
@@ -384,7 +384,7 @@
         async function loadReports() {
             try {
                 console.log('🔄 Loading reports for user:', currentUser.id);
-                showNotification('🔄 Loading your reports...', 'info');
+                // showNotification('🔄 Loading your reports...', 'info');
                 
                 // Test basic table access first
                 console.log('🔍 Testing reports table access...');
@@ -399,7 +399,7 @@
                 }
                 
                 console.log('✅ Reports table accessible, total reports:', testData);
-                showNotification('✅ Database connected successfully', 'success');
+                // showNotification('✅ Database connected successfully', 'success');
                 
                 // Test what fields are available by trying a simple query
                 console.log('Testing available fields...');
