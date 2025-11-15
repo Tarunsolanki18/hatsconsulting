@@ -112,39 +112,37 @@
     </div>
 
     <!-- Main Content -->
-    <!-- <main class="container mx-auto px-4 py-8">
-       
+    <main class="container mx-auto px-4 py-8">
+       <a href = "https://docs.google.com/spreadsheets/d/1pwwHPU9nixFgA53yZxIVcOz5RF-E4ZJ7MDIkkas3ktA/edit?usp=sharing" target= "-blank">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
                 </div>
-                <div class="text-3xl font-bold text-text-dark" id="total-reports">0</div>
-                <div class="text-text-medium">Total Reports</div>
+                
+                <div class="text-text-medium">Trade Report</div>
             </div>
-            <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                </div>
-                <div class="text-3xl font-bold text-text-dark" id="approved-reports">0</div>
-                <div class="text-text-medium">Account Open Reports</div>
-            </div>
-            <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
-                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-clock text-yellow-600 text-2xl"></i>
-                </div>
-                <div class="text-3xl font-bold text-text-dark" id="pending-reports">0</div>
-                <div class="text-text-medium">Pending Reports</div>
-            </div>
-        </div> -->
+       </a>
+            <a href="https://docs.google.com/spreadsheets/d/16uqouea_dJk7gEZfES4OLekBwwwQEsiORX5YDp2EB1o/edit?usp=sharing" target="_blank">
+    <div class="bg-white rounded-2xl shadow-lg p-6 text-center cursor-pointer hover:shadow-xl transition">
+        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
+        </div>
+        
+        <div class="text-text-medium">Account Open Report</div>
+    </div>
+</a>
+
+           
+        </div>
 
         <!-- Filter Tabs -->
-        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex flex-wrap gap-4 mb-6">
+        <!-- <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 mb-6"> -->
                 <!-- <button onclick="filterReports('all')" id="filter-all" class="filter-btn bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-colors">
                     <i class="fas fa-list mr-2"></i>All Reports
                 </button> -->
-                <button onclick="window.location.href='https://docs.google.com/spreadsheets/d/1pwwHPU9nixFgA53yZxIVcOz5RF-E4ZJ7MDIkkas3ktA/edit?usp=sharing';" 
+                <!-- <button onclick="window.location.href='https://docs.google.com/spreadsheets/d/1pwwHPU9nixFgA53yZxIVcOz5RF-E4ZJ7MDIkkas3ktA/edit?usp=sharing';" 
         id="filter-trade" 
         class="filter-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
     <i class="fas fa-chart-line mr-2"></i>Trade Reports
@@ -156,7 +154,7 @@
     <i class="fas fa-user-plus mr-2"></i>Account Open Reports
 </button>
 
-            </div>
+            </div> -->
             
             <!-- Advanced Filter Options -->
             <!-- <div class="border-t border-gray-200 pt-6">
@@ -320,7 +318,7 @@
     </main>
 
     <!-- Report Details Modal -->
-    <div id="report-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <!-- <div id="report-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
@@ -331,10 +329,10 @@
                 </div>
                 <div id="modal-content">
                     <!-- Modal content will be loaded here -->
-                </div>
+                <!-- </div>
             </div>
         </div>
-    </div>
+    </div> --> -->
 
     <script>
         let currentUser = null;
@@ -436,7 +434,7 @@
                     console.log('💡 This means admin_notes column does not exist in database');
                     
                     // Show user-friendly error message
-                    showNotification('Database Schema Issue: admin_notes column missing. Please contact admin to add this column.', 'error');
+                    // showNotification('Database Schema Issue: admin_notes column missing. Please contact admin to add this column.', 'error');
                     
                     // Try to add the column (this might fail due to permissions)
                     console.log('🔧 Attempting to add admin_notes column...');
@@ -456,7 +454,7 @@
                 
                 // Load reports without campaigns join (since relationship doesn't exist)
                 console.log('📥 Loading user reports...');
-                showNotification('📥 Fetching your reports from database...', 'info');
+                // showNotification('📥 Fetching your reports from database...', 'info');
                 
                 const { data: reports, error } = await App.supabase
                     .from('reports')
@@ -466,7 +464,7 @@
 
                 if (error) {
                     console.error('❌ Error loading reports:', error);
-                    showNotification('❌ Failed to load reports: ' + error.message, 'error');
+                    // showNotification('❌ Failed to load reports: ' + error.message, 'error');
                     throw error;
                 }
 
@@ -474,9 +472,9 @@
                 console.log('✅ Loaded reports:', allReports.length);
                 
                 if (allReports.length === 0) {
-                    showNotification('📋 No reports found. Submit your first report!', 'info');
+                    // showNotification('📋 No reports found. Submit your first report!', 'info');
                 } else {
-                    showNotification(`✅ Found ${allReports.length} reports!`, 'success');
+                    // showNotification(`✅ Found ${allReports.length} reports!`, 'success');
                     console.log('Sample report data:', allReports[0]);
                 }
                 
@@ -519,17 +517,17 @@
                 
                 // Hide loading indicator
                 document.getElementById('loading-indicator').style.display = 'none';
-                showNotification('🎯 Updating statistics and displaying reports...', 'info');
+                // showNotification('🎯 Updating statistics and displaying reports...', 'info');
                 
                 updateStatistics();
                 filterReports(currentFilter);
                 
-                showNotification('✅ Reports page loaded successfully!', 'success');
+                // showNotification('✅ Reports page loaded successfully!', 'success');
                 
             } catch (error) {
                 console.error('Error loading reports:', error);
                 document.getElementById('loading-indicator').style.display = 'none';
-                showNotification('Error loading reports: ' + error.message, 'error');
+                // showNotification('Error loading reports: ' + error.message, 'error');
                 
                 // Show empty state if no reports could be loaded
                 document.getElementById('empty-state').classList.remove('hidden');
@@ -576,7 +574,7 @@
                 console.log('📋 No filtered reports to display, showing empty state');
                 container.innerHTML = '';
                 emptyState.classList.remove('hidden');
-                showNotification('📋 No reports match current filters', 'info');
+                // showNotification('📋 No reports match current filters', 'info');
                 return;
             }
 
